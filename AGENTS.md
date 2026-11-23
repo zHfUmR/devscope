@@ -9,7 +9,7 @@ DevScope 是一个 macOS 原生开发者工具箱：检测本机开发环境（F
 
 - 桌面框架：Tauri 2
 - 后端：Rust（edition 2024）——**核心业务层**
-- 前端：Vue 3 + TypeScript（Composition API）
+- 前端：Vue 3 + TypeScript（Composition API）+ Vue Router
 - 构建：Vite
 - 包管理：npm
 - 目标平台：macOS（先 Apple Silicon）
@@ -39,18 +39,20 @@ macOS                   系统能力
 
 ## 3. 目录职责
 
-**当前实际状态**：Rust 侧只有 `main.rs`、`lib.rs`；前端只有 `main.ts`、`App.vue`、`vite-env.d.ts`。下面带 ★ 的目录在**第一个功能需要时才创建**，不要一次性铺开。
+**当前实际状态**：Flutter / Android / iOS 环境检测与总览导航已经落地；`views/`、`components/`、`services/`、`types/`、`router/` 均已有实际代码。新增目录只在有实际代码时创建，不为「以后可能用到」预铺空目录。
 
 前端 `src/`：
 
 | 路径 | 职责 |
 |---|---|
-| `main.ts` | 入口，挂载 `App`（基本不动） |
-| `App.vue` | 根布局 |
-| `views/` ★ | 整页组件 `Dashboard.vue` / `Environment.vue` … |
-| `components/` ★ | 可复用 UI 组件 |
-| `services/rust-api.ts` ★ | 所有 `invoke` 调用集中在此 |
-| `types/index.ts` ★ | 与 Rust 结构体一一对应的 TS interface |
+| `main.ts` | 入口，挂载 `App` 与路由（基本不动） |
+| `App.vue` | 根布局：侧边栏 + 路由出口 |
+| `router/` | 路由表与 hash history |
+| `views/` | 整页组件 `Overview.vue` / `FlutterEnvironment.vue` … |
+| `components/` | 可复用 UI 组件 |
+| `services/rust-api.ts` | 所有 `invoke` 调用集中在此 |
+| `types/index.ts` | 与 Rust 结构体一一对应的 TS interface |
+| `styles/app.css` | 设计令牌与跨页面共享样式 |
 
 Rust `src-tauri/src/`：
 
@@ -58,10 +60,10 @@ Rust `src-tauri/src/`：
 |---|---|
 | `main.rs` | 二进制入口，只调用 `run()`（不动） |
 | `lib.rs` | 应用初始化、插件与命令注册（不放业务逻辑） |
-| `commands/` ★ | Tauri 命令：参数进出 + 转发 |
-| `services/` ★ | 真正的业务逻辑，可独立测试 |
-| `models/` ★ | struct / enum，前后端数据契约 |
-| `utils/` ★ | 通用小工具，不要变成杂物间 |
+| `commands/` | Tauri 命令：参数进出 + 转发 |
+| `services/` | 真正的业务逻辑，可独立测试 |
+| `models/` | struct / enum，前后端数据契约 |
+| `utils/` | 通用小工具，不要变成杂物间 |
 
 ## 4. Rust 规范
 
@@ -106,10 +108,10 @@ Rust `src-tauri/src/`：
 完成后必须实际执行并汇报结果：
 
 ```bash
-# Rust（注意：非登录 shell 可能没有 cargo，见下）
-~/.cargo/bin/cargo fmt --check
-~/.cargo/bin/cargo clippy
-~/.cargo/bin/cargo test
+# Rust（在仓库根目录执行；Cargo.toml 在 src-tauri/）
+~/.cargo/bin/cargo fmt --manifest-path src-tauri/Cargo.toml --check
+~/.cargo/bin/cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+~/.cargo/bin/cargo test --manifest-path src-tauri/Cargo.toml
 
 # 前端
 npm run build      # 含 vue-tsc 类型检查

@@ -24,7 +24,11 @@
 
 | 场景 | 说明 | 当前状态 |
 |------|------|----------|
-| 开发环境检测 | 检测本机 Flutter / Dart / Xcode / Git / Python / Rust | 规划中 |
+| 总览仪表盘 | 本机配置 + 常用开发环境与语言入口 | 已完成 |
+| 本机配置 | macOS / 芯片 / 内存 / CPU 核心 / 机型 | 已完成 |
+| Flutter 环境检测 | 定位 SDK、解析版本，按需运行 `flutter doctor -v` | 已完成 |
+| Android 环境检测 | SDK / platform / build-tools / JDK / licenses / AVD | 已完成 |
+| iOS 环境检测 | Xcode / CLT / CocoaPods / Swift / iOS 模拟器 | 已完成 |
 | Flutter 项目分析 | 解析项目配置、依赖与平台设置 | 规划中 |
 | 构建日志解析 | 读取构建输出并统计错误 | 规划中 |
 | 诊断报告导出 | 输出 JSON / Markdown 报告 | 规划中 |
@@ -36,7 +40,7 @@
 |---|---|
 | 桌面框架 | Tauri 2 |
 | 后端 | Rust (edition 2024) |
-| 前端 | Vue 3 + TypeScript |
+| 前端 | Vue 3 + TypeScript + Vue Router |
 | 构建 | Vite 8 |
 | 目标平台 | macOS (Apple Silicon) |
 
@@ -64,12 +68,19 @@ npm run tauri build  # 产物在 src-tauri/target/release/bundle/
 
 ```
 devscope/
-├── src/                前端（Vue 3 + TypeScript）
-└── src-tauri/          Rust 后端
+├── src/                         前端（Vue 3 + TypeScript）
+│   ├── router/                  路由（hash history）
+│   ├── views/                   总览 / Flutter / Android / iOS
+│   ├── components/              可复用展示组件
+│   ├── services/                rust-api.ts 与状态映射
+│   ├── types/index.ts           与 Rust 模型一一对应的 TS 类型
+│   └── styles/app.css           设计令牌与共享样式
+└── src-tauri/                   Rust 后端
     └── src/
-        ├── commands/   前端可调用的命令（薄转发层）
-        ├── services/   业务逻辑
-        └── models/     数据结构
+        ├── commands/            前端可调用的命令（薄转发层）
+        ├── services/            Flutter / Android / iOS / 本机配置检测逻辑
+        ├── models/              前后端数据契约
+        └── utils/               进程执行与版本比较
 ```
 
 详细的逐文件说明见 [docs/PROJECT-STRUCTURE.md](docs/PROJECT-STRUCTURE.md)。
@@ -77,7 +88,11 @@ devscope/
 ## 开发路线
 
 - [x] 工程初始化（Tauri 2 + Vue 3 + TypeScript）
-- [ ] 开发环境检测（Flutter / Dart / Xcode / Git / Python / Rust）
+- [x] 本机配置与总览仪表盘
+- [x] Flutter 环境检测与 `flutter doctor` 摘要
+- [x] Android 环境检测（SDK / JDK / AVD）
+- [x] iOS 环境检测（Xcode / CocoaPods / 模拟器）
+- [x] 总览页与侧边栏导航
 - [ ] Flutter 项目配置分析
 - [ ] 日志解析与错误统计
 - [ ] JSON / Markdown 诊断报告导出
