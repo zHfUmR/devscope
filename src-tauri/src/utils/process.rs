@@ -37,6 +37,11 @@ impl ProcessOutput {
         self.status.code()
     }
 
+    /// 任一条流是否因为超过上限而被截断；调用方可据此提示输出不完整。
+    pub fn is_truncated(&self) -> bool {
+        self.stdout_truncated || self.stderr_truncated
+    }
+
     /// 取 stderr（为空时退回 stdout）作为错误摘要，并限制字符数。
     pub fn stderr_excerpt(&self, max_chars: usize) -> String {
         let stderr = self.stderr.trim();
