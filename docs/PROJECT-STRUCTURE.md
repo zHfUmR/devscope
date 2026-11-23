@@ -67,9 +67,11 @@ devscope/
     ├── Cargo.toml
     ├── tauri.conf.json
     ├── capabilities/default.json
+    ├── icons/                        应用图标 / 菜单栏图标
     └── src/
         ├── main.rs
         ├── lib.rs
+        ├── tray.rs
         ├── commands/
         │   ├── mod.rs
         │   └── environment.rs
@@ -187,6 +189,55 @@ detectSystemInfo()           → detect_system_info
 
 应用初始化与命令注册。**每新增一个 `#[tauri::command]`，必须在这里的
 `generate_handler![...]` 中注册**，否则前端报 `command not found`。
+菜单栏图标在 `setup` 里交给 `tray::init`。
+
+### `tray.rs`
+
+菜单栏常驻图标：托盘图标 + 菜单（显示 DevScope / 关于 / 退出），
+在 `lib.rs` 的 `setup` 中调用一次。
+
+图标规则和桌面图标完全不是一套，换图前先看这里：
+
+- 只用一张 `icons/tray.png`，**44×44 px**。Tauri 会把图标高度**归一成 18pt**
+  （`tray-icon` 的内部实现，`set_icon_for_ns_status_item_button`），
+  44px 正好是 18pt 的 2x；换成 512 的图不会更大，只会让二进制变大——
+  图标是按原始像素编进可执行文件的。
+- 必须是纯黑 + alpha 的模板图，并开 `icon_as_template(true)`，
+  由 macOS 自动反色适配浅色 / 深色菜单栏。
+- 图形要撑满画布，只留 2px 安全边：整张图的高度都会映射成 18pt，留白越多图形越小。
+- 当前图形是 SF Pro Bold 的「D」单字母，18pt 下仍可辨认；不要塞 `</>`、放大镜等细节。
+
+「关于」面板刻意不传 `icon`，直接用 bundle 里的 `icon.icns`，和 Dock 保持一致。
+（`muda` 对自定义 icon 不做缩放，像素尺寸会被当成 pt 尺寸。）
+
+### `icons/`
+
+`src-tauri/icons/`（不在 `src/` 下）：应用图标与菜单栏图标。
+
+| 文件 | 用途 |
+|---|---|
+| `source-1024.png` | 图标母版：1024×1024，内容 824×824，外圈全透明 |
+| `icon.icns` | 桌面图标（Dock / Finder / Launchpad / Cmd-Tab），含 16~1024 全部 10 档 |
+| `tray.png` | 菜单栏图标，44×44 纯黑模板图 |
+| `32x32.png`、`64x64.png`、`128x128.png`、`128x128@2x.png`、`icon.png` | 非 macOS 平台与窗口图标 |
+| `icon.ico`、`Square*Logo.png`、`StoreLogo.png` | Windows 专用，macOS 用不到 |
+| `android/`、`ios/` | 移动端图标，当前不发布移动端 |
+
+重新生成桌面图标：
+
+```bash
+npx tauri icon src-tauri/icons/source-1024.png --output src-tauri/icons
+```
+
+注意：`tauri icon` 会顺带**覆盖 `tray.png`**，并按亮度自动抠一张模板图 ——
+那个结果在 18pt 下是一团黑块，不能直接用。覆盖后从 Git 恢复：
+
+```bash
+git checkout src-tauri/icons/tray.png
+```
+
+macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 100px），
+圆角约 185.4px，用超椭圆；外圈不要投影。
 
 ### `commands/environment.rs`
 

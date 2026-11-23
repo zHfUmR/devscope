@@ -32,6 +32,7 @@
 | Flutter 项目分析 | 解析项目配置、依赖与平台设置 | 规划中 |
 | 构建日志解析 | 读取构建输出并统计错误 | 规划中 |
 | 诊断报告导出 | 输出 JSON / Markdown 报告 | 规划中 |
+| 菜单栏常驻 | 状态栏图标，可显示主窗口 / 关于 / 退出 | 已完成 |
 | 工程骨架 | Tauri 2 + Vue 3 + TypeScript | 已完成 |
 
 ## 技术栈
@@ -77,6 +78,7 @@ devscope/
 │   └── styles/app.css           设计令牌与共享样式
 └── src-tauri/                   Rust 后端
     └── src/
+        ├── tray.rs              菜单栏常驻图标与菜单
         ├── commands/            前端可调用的命令（薄转发层）
         ├── services/            Flutter / Android / iOS / 本机配置检测逻辑
         ├── models/              前后端数据契约

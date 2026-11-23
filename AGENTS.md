@@ -60,6 +60,7 @@ Rust `src-tauri/src/`：
 |---|---|
 | `main.rs` | 二进制入口，只调用 `run()`（不动） |
 | `lib.rs` | 应用初始化、插件与命令注册（不放业务逻辑） |
+| `tray.rs` | 菜单栏常驻图标与菜单（应用装配，不放检测逻辑） |
 | `commands/` | Tauri 命令：参数进出 + 转发 |
 | `services/` | 真正的业务逻辑，可独立测试 |
 | `models/` | struct / enum，前后端数据契约 |
