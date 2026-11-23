@@ -1,12 +1,34 @@
+<div align="center">
+
 # DevScope
 
-> macOS 开发者工具箱 —— 本地开发环境诊断与项目分析。
+**macOS 开发者工具箱 · 本地开发环境诊断与项目分析**
 
-一个用 **Rust + Tauri 2** 构建的原生 macOS 桌面应用，用于检测本机开发环境（Flutter / Dart / Xcode / Git / Python / Rust）、分析 Flutter 项目配置、解析构建日志并生成诊断报告。
+原生桌面应用 · Tauri 2 · Rust · Vue 3 + TypeScript
 
-## 状态
+[![Rust](https://img.shields.io/badge/rust-1.100.0-000000?logo=rust&logoColor=white)](#)
+[![Tauri](https://img.shields.io/badge/tauri-2.12.7-24C8D8?logo=tauri&logoColor=white)](#)
+[![Vue](https://img.shields.io/badge/vue-3.5.46-4FC08D?logo=vuedotjs&logoColor=white)](#)
+[![Vite](https://img.shields.io/badge/vite-8.3.8-646CFF?logo=vite&logoColor=white)](#)
+[![TypeScript](https://img.shields.io/badge/typescript-6.0.3-3178C6?logo=typescript&logoColor=white)](#)
+[![macOS](https://img.shields.io/badge/macos-12%2B-lightgrey?logo=apple&logoColor=white)](#)
+[![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 🚧 **开发中** —— 项目处于初始骨架阶段，功能正在逐步实现。
+
+</div>
+
+---
+
+## 功能特性
+
+| 场景 | 说明 | 当前状态 |
+|------|------|----------|
+| 开发环境检测 | 检测本机 Flutter / Dart / Xcode / Git / Python / Rust | 规划中 |
+| Flutter 项目分析 | 解析项目配置、依赖与平台设置 | 规划中 |
+| 构建日志解析 | 读取构建输出并统计错误 | 规划中 |
+| 诊断报告导出 | 输出 JSON / Markdown 报告 | 规划中 |
+| 工程骨架 | Tauri 2 + Vue 3 + TypeScript | 已完成 |
 
 ## 技术栈
 
