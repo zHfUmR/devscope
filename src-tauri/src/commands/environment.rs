@@ -3,6 +3,7 @@
 //! 这一层只做两件事：把阻塞的检测任务丢到 blocking 线程池，以及把机制性失败
 //! 转成前端能读的字符串。真正的检测逻辑在 `services::flutter`。
 
+use crate::models::doctor::DoctorReport;
 use crate::models::environment::FlutterEnvironment;
 use crate::services::flutter;
 
@@ -17,4 +18,16 @@ pub async fn detect_flutter_environment() -> Result<FlutterEnvironment, String> 
     tauri::async_runtime::spawn_blocking(flutter::detect)
         .await
         .map_err(|err| format!("Flutter 环境检测任务执行失败：{err}"))
+}
+
+/// 运行 `flutter doctor -v` 并返回体检报告。
+///
+/// 这是按需触发的慢操作：doctor 会检查 Android、Xcode、设备和网络，可能耗时
+/// 数十秒，所以同样放到 blocking 线程池。报告本身包含 warning/error 状态，
+/// 命令返回 `Err` 只表示任务没能执行完。
+#[tauri::command]
+pub async fn run_flutter_doctor() -> Result<DoctorReport, String> {
+    tauri::async_runtime::spawn_blocking(flutter::run_flutter_doctor)
+        .await
+        .map_err(|err| format!("Flutter 体检任务执行失败：{err}"))
 }

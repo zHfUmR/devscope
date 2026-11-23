@@ -6,7 +6,6 @@
 use std::env;
 use std::ffi::OsStr;
 use std::fmt;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
@@ -14,7 +13,12 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use crate::models::environment::{FlutterEnvironment, FlutterExecutableSource, FlutterStatus, FlutterVersionInfo};
+use crate::utils::fs::{home_dir, is_executable};
 use crate::utils::process::{self, ProcessError};
+
+mod doctor;
+
+pub use doctor::run_flutter_doctor;
 
 /// flutter 可执行文件的文件名，避免在多个 join / 比较处散落字面量。
 const FLUTTER_BINARY: &str = "flutter";
@@ -162,11 +166,6 @@ fn common_install_candidates_for(home: Option<&Path>) -> Vec<FlutterCandidate> {
         .collect()
 }
 
-/// 读取 HOME 目录。GUI 进程一般能拿到；拿不到时只保留系统级候选。
-fn home_dir() -> Option<PathBuf> {
-    env::var_os("HOME").filter(|value| !value.is_empty()).map(PathBuf::from)
-}
-
 /// 通过用户登录 shell 解析 flutter 路径，作为 GUI PATH 缺失时的兜底。
 ///
 /// shell 启动时可能加载 `.zprofile` / `.zshrc`，所以设置 5 秒超时；
@@ -238,31 +237,6 @@ fn push_candidate(candidates: &mut Vec<FlutterCandidate>, candidate: FlutterCand
 /// 返回第一个真正可执行的候选；候选顺序就是优先级。
 fn first_executable(candidates: &[FlutterCandidate]) -> Option<&FlutterCandidate> {
     candidates.iter().find(|candidate| is_executable(&candidate.path))
-}
-
-/// 判断路径是否是普通文件且具备可执行权限。
-///
-/// 不调用 `canonicalize`：保留用户实际配置的路径，FVM 等符号链接也原样展示。
-fn is_executable(path: &Path) -> bool {
-    let Ok(metadata) = fs::metadata(path) else {
-        return false;
-    };
-
-    metadata.is_file() && has_execute_permission(&metadata)
-}
-
-/// Unix 下检查权限位。目录、普通文本文件都不算可执行。
-#[cfg(unix)]
-fn has_execute_permission(metadata: &fs::Metadata) -> bool {
-    use std::os::unix::fs::PermissionsExt;
-
-    metadata.permissions().mode() & 0o111 != 0
-}
-
-/// 非 Unix 平台没有统一的执行位概念，先退化为「文件存在」。
-#[cfg(not(unix))]
-fn has_execute_permission(_metadata: &fs::Metadata) -> bool {
-    true
 }
 
 /// 解析 `flutter --version --machine` 输出时的错误。

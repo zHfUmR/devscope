@@ -7,7 +7,10 @@ mod utils;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::environment::detect_flutter_environment])
+        .invoke_handler(tauri::generate_handler![
+            commands::environment::detect_flutter_environment,
+            commands::environment::run_flutter_doctor
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
