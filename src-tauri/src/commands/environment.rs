@@ -1,11 +1,12 @@
 //! 环境检测相关的 Tauri 命令。
 //!
 //! 这一层只做两件事：把阻塞的检测任务丢到 blocking 线程池，以及把机制性失败
-//! 转成前端能读的字符串。真正的检测逻辑在 `services::flutter`。
+//! 转成前端能读的字符串。真正的检测逻辑在 `services::{android, flutter}`。
 
+use crate::models::android::AndroidEnvironment;
 use crate::models::doctor::DoctorReport;
 use crate::models::environment::FlutterEnvironment;
-use crate::services::flutter;
+use crate::services::{android, flutter};
 
 /// 检测本机 Flutter 环境。
 ///
@@ -30,4 +31,15 @@ pub async fn run_flutter_doctor() -> Result<DoctorReport, String> {
     tauri::async_runtime::spawn_blocking(flutter::run_flutter_doctor)
         .await
         .map_err(|err| format!("Flutter 体检任务执行失败：{err}"))
+}
+
+/// 检测本机 Android SDK、JDK 和模拟器。
+///
+/// 检测以文件系统读取为主，但仍放到 blocking 线程池，保持命令层行为一致，
+/// 避免将来加入外部命令时阻塞异步运行时。
+#[tauri::command]
+pub async fn detect_android_environment() -> Result<AndroidEnvironment, String> {
+    tauri::async_runtime::spawn_blocking(android::detect)
+        .await
+        .map_err(|err| format!("Android 环境检测任务执行失败：{err}"))
 }

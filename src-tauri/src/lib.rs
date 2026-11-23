@@ -9,7 +9,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             commands::environment::detect_flutter_environment,
-            commands::environment::run_flutter_doctor
+            commands::environment::run_flutter_doctor,
+            commands::environment::detect_android_environment
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
