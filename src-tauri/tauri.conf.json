@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "devscope",
+  "productName": "DevScope",
   "version": "0.1.0",
   "identifier": "com.devscope.app",
   "build": {
@@ -12,9 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "devscope",
-        "width": 800,
-        "height": 600
+        "title": "DevScope",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 900,
+        "minHeight": 600,
+        "center": true,
+        "resizable": true
       }
     ],
     "security": {
