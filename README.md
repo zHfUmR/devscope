@@ -14,7 +14,7 @@
 [![macOS](https://img.shields.io/badge/macos-12%2B-lightgrey?logo=apple&logoColor=white)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
-🚧 **开发中** —— 项目处于初始骨架阶段，功能正在逐步实现。
+🚧 **开发中** —— 项目功能正在逐步实现。
 
 </div>
 
@@ -43,7 +43,7 @@
 ## 环境要求
 
 - macOS 12+
-- Rust 1.80+（[rustup](https://rustup.rs)）
+- Rust 1.85+（edition 2024 的最低要求，[rustup](https://rustup.rs)）
 - Node.js 20+
 - Xcode Command Line Tools（`xcode-select --install`）
 

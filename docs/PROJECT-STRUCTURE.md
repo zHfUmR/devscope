@@ -42,7 +42,8 @@
 | `tsconfig.json` | TypeScript 编译规则（strict 已开） | 不用动 |
 | `tsconfig.node.json` | 给 `vite.config.ts` 用的 TS 配置 | 不用动 |
 | `.gitignore` | 哪些文件不进 Git | 加新产物时改 |
-| `README.md` | 项目说明 | 最后阶段写 |
+| `README.md` | 项目说明 | 功能变化时同步 |
+| `AGENTS.md` | AI 开发规范（架构边界、编码约定） | 约定变化时改 |
 
 ### `index.html` 里的关键一行
 
@@ -89,9 +90,13 @@ createApp(App).mount("#app");
 
 这就是 Vue 应用的全部启动过程。**你几乎永远不用改它**（除非加路由、状态管理库）。
 
-### `src/App.vue` 目前是脚手架示例
+### `src/App.vue` 目前已清空为骨架
 
-159 行，包含：Tauri 示例 Logo、一个输入框、一个 `greet` 函数。
+脚手架里的 Tauri Logo、输入框和 `greet` 示例已在 `dc898fc` 中删除，现在只剩一个居中标题和占位说明。
+
+> 注意：前端已经不再调用 `invoke("greet")`，但 `lib.rs` 里的 `greet` 命令仍然注册着，等第一个真实命令（环境检测）写好后一起替换掉。
+
+原来示例里这一行是**前端调用 Rust 的完整语法**，留着当语法参考：
 
 ```ts
 async function greet() {
@@ -99,9 +104,9 @@ async function greet() {
 }
 ```
 
-这一行就是**前端调用 Rust 的完整语法**。注意第二个参数 `{ name: ... }` 的 key 名必须和 Rust 函数的参数名**完全一致**——这是最容易错的地方。
+注意第二个参数 `{ name: ... }` 的 key 名必须和 Rust 函数的参数名**完全一致**——这是最容易错的地方。
 
-**这个文件的内容要全部删掉重写**，它就是我们要清理的脚手架。
+今后所有 `invoke` 调用都集中写在 `src/services/rust-api.ts`，组件里不直接调用。
 
 > Vue 单文件组件（SFC）的三个块：`<script setup>` 写逻辑、`<template>` 写结构、`<style>` 写样式。
 
@@ -227,7 +232,7 @@ pub fn run() {
 
 ## 六、以后该在哪写什么（速查表）
 
-现在项目还只有两个源文件，等按计划推进后会长成这样：
+现在一共只有 5 个源文件（前端 3 个、Rust 2 个），等按计划推进后会长成这样：
 
 ```
 src/                          ← UI
