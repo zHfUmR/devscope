@@ -1,21 +1,31 @@
 {
-  // ---- 编辑器 ----
+  // ============ 编辑器 ============
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.tabSize": 2,
+  // 视觉参考线，配合 src-tauri/rustfmt.toml 的 max_width = 120
+  "editor.rulers": [120],
+
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
     "editor.tabSize": 4
   },
 
-  // ---- rust-analyzer ----
-  // 用 clippy 而不是 cargo check 检查，能提前发现惯用写法问题
+  // ============ rust-analyzer ============
+  // 保存时用 rustfmt 格式化 (由上面 [rust] 段控制)
+  // 检查器用 clippy 而不是 cargo check，能提前发现惯用写法问题
   "rust-analyzer.check.command": "clippy",
-  // 学习阶段打开生命周期省略提示，直观看到编译器自动补的 '_
+
+  // 行内提示 (inlay hints)：代码里那些灰色的类型标注
+  // 学习阶段建议全开，能看见编译器推导出了什么
+  "rust-analyzer.inlayHints.typeHints.enable": true,
+  "rust-analyzer.inlayHints.parameterHints.enable": true,
+  // 生命周期省略提示：显示编译器自动补的 '_ ，理解借用检查最有用的一项
   "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "always",
   "rust-analyzer.inlayHints.closureReturnTypeHints.enable": "always",
 
-  // ---- 性能：别让 VS Code 去索引编译产物 ----
+  // ============ 性能：别让 VS Code 索引编译产物 ============
   "files.watcherExclude": {
     "**/src-tauri/target/**": true,
     "**/node_modules/**": true,

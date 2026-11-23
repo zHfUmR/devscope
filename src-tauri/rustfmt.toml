@@ -1,0 +1,14 @@
+# rustfmt 配置
+# 文档: https://rust-lang.github.io/rustfmt/
+#
+# 注意: rustfmt.toml 里只有「稳定」选项会生效，
+# 不稳定选项需要 nightly 工具链，别在这里写。
+
+# 与 .vscode/settings.json 里的 "editor.rulers": [120] 保持一致
+max_width = 120
+
+# 链式调用过长时的缩进宽度
+chain_width = 80
+
+# 单个函数调用参数过多时的宽度
+fn_call_width = 100
