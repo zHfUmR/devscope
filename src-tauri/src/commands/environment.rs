@@ -1,13 +1,14 @@
 //! 环境检测相关的 Tauri 命令。
 //!
 //! 这一层只做两件事：把阻塞的检测任务丢到 blocking 线程池，以及把机制性失败
-//! 转成前端能读的字符串。真正的检测逻辑在 `services::{android, flutter, ios}`。
+//! 转成前端能读的字符串。真正的检测逻辑在 `services::{flutter, android, ios, system}`。
 
 use crate::models::android::AndroidEnvironment;
 use crate::models::doctor::DoctorReport;
 use crate::models::environment::FlutterEnvironment;
 use crate::models::ios::IosEnvironment;
-use crate::services::{android, flutter, ios};
+use crate::models::system::SystemInfo;
+use crate::services::{android, flutter, ios, system};
 
 /// 检测本机 Flutter 环境。
 ///
@@ -54,4 +55,15 @@ pub async fn detect_ios_environment() -> Result<IosEnvironment, String> {
     tauri::async_runtime::spawn_blocking(ios::detect)
         .await
         .map_err(|err| format!("iOS 环境检测任务执行失败：{err}"))
+}
+
+/// 读取本机配置（macOS、芯片、内存、核心数、机型）。
+///
+/// 这些命令都是本地只读操作，但仍放到 blocking 线程池，避免命令层出现
+/// 一个同步阻塞的例外。
+#[tauri::command]
+pub async fn detect_system_info() -> Result<SystemInfo, String> {
+    tauri::async_runtime::spawn_blocking(system::detect)
+        .await
+        .map_err(|err| format!("本机配置检测任务执行失败：{err}"))
 }
