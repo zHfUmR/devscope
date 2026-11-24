@@ -3,12 +3,12 @@
 //! 总览页用它回答「这是一台什么机器」，与工具链检测分开：即使 Flutter 没装，
 //! 本机配置也应该能展示出来。
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// 一台 macOS 主机的基础配置。
 ///
 /// 每个字段都是 `Option`：某条系统命令失败时只丢这一项，整体仍然可用。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
     /// 操作系统名称，通常为 macOS。

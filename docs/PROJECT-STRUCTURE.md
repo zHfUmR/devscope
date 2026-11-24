@@ -43,10 +43,7 @@ devscope/
 ├── AGENTS.md
 ├── README.md
 ├── docs/
-│   ├── PROJECT-STRUCTURE.md
-│   └── images/                       README 界面截图
-│       ├── overview.png
-│       └── flutter-environment.png
+│   └── PROJECT-STRUCTURE.md
 ├── src/                              前端
 │   ├── main.ts
 │   ├── App.vue
@@ -55,13 +52,26 @@ devscope/
 │   │   ├── Overview.vue
 │   │   ├── FlutterEnvironment.vue
 │   │   ├── AndroidEnvironment.vue
-│   │   └── IosEnvironment.vue
+│   │   ├── IosEnvironment.vue
+│   │   ├── Toolchains.vue
+│   │   ├── ProjectAnalysis.vue
+│   │   ├── LogAnalysis.vue
+│   │   └── DiagnosticReport.vue
 │   ├── components/
 │   │   ├── StatusBadge.vue
 │   │   ├── IssueList.vue
-│   │   └── EnvironmentRow.vue
+│   │   ├── EnvironmentRow.vue
+│   │   ├── DetailList.vue
+│   │   ├── CommandPalette.vue
+│   │   ├── CopyButton.vue
+│   │   └── PathActions.vue
 │   ├── services/
 │   │   ├── rust-api.ts
+│   │   ├── dialog.ts
+│   │   ├── errors.ts
+│   │   ├── clipboard.ts
+│   │   ├── install-guide.ts
+│   │   ├── reveal.ts
 │   │   └── status.ts
 │   ├── types/index.ts
 │   ├── styles/app.css
@@ -77,25 +87,43 @@ devscope/
         ├── tray.rs
         ├── commands/
         │   ├── mod.rs
-        │   └── environment.rs
+        │   ├── environment.rs
+        │   └── analysis.rs
         ├── services/
         │   ├── mod.rs
         │   ├── flutter.rs
         │   ├── flutter/doctor.rs
         │   ├── android.rs
         │   ├── ios.rs
-        │   └── system.rs
+        │   ├── system.rs
+        │   ├── toolchain.rs
+        │   ├── cache.rs
+        │   ├── project.rs
+        │   ├── project/pubspec.rs
+        │   ├── project/gradle.rs
+        │   ├── project/ios_project.rs
+        │   ├── build_log.rs
+        │   ├── outdated.rs
+        │   ├── report.rs
+        │   └── report/markdown.rs
         ├── models/
         │   ├── mod.rs
         │   ├── environment.rs
         │   ├── doctor.rs
         │   ├── android.rs
         │   ├── ios.rs
-        │   └── system.rs
+        │   ├── system.rs
+        │   ├── toolchain.rs
+        │   ├── outdated.rs
+        │   ├── project.rs
+        │   ├── build_log.rs
+        │   └── report.rs
         └── utils/
             ├── mod.rs
+            ├── executable.rs
             ├── fs.rs
             ├── process.rs
+            ├── time.rs
             └── version.rs
 ```
 
@@ -116,6 +144,7 @@ createApp(App).use(router).mount("#app");
 应用外壳：左侧品牌与导航，右侧 `<RouterView />`。
 页面本身不实现侧边栏；导航高亮由 Vue Router 的 `active-class` 负责。
 页面组件用 `<KeepAlive>` 缓存，返回时不重复执行慢检测；每个详情页都有刷新按钮。
+应用还挂载了 Cmd+K 命令面板，并提供跟随 macOS 外观的深色模式（见 `styles/app.css` 的令牌覆盖）。
 
 ### `router/index.ts`
 
@@ -125,6 +154,10 @@ createApp(App).use(router).mount("#app");
 | `/environment/flutter` | Flutter |
 | `/environment/android` | Android |
 | `/environment/ios` | iOS / Xcode |
+| `/environment/toolchains` | 常用工具链 |
+| `/project` | Flutter 项目分析 |
+| `/logs` | 构建日志分析 |
+| `/report` | 诊断报告 |
 
 使用 `createWebHashHistory()`。Tauri WebView 用自定义协议加载静态文件，没有
 history fallback；hash 路由在刷新时不会因为找不到 `/environment/flutter` 而白屏。
@@ -137,8 +170,12 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 | `FlutterEnvironment.vue` | Flutter SDK 检测 + 按需运行 `flutter doctor -v` |
 | `AndroidEnvironment.vue` | Android SDK / JDK / AVD 详情 |
 | `IosEnvironment.vue` | Xcode / CocoaPods / Swift / 模拟器详情 |
+| `Toolchains.vue` | Python / Node.js / Git / Rust / Go / Java 的路径与版本 |
+| `ProjectAnalysis.vue` | 选择项目目录，展示 pubspec / 依赖 / Android / iOS 配置 |
+| `LogAnalysis.vue` | 选择构建日志，展示错误 / 警告分组与构建结果 |
+| `DiagnosticReport.vue` | 生成、预览并导出 JSON / Markdown 诊断报告 |
 
-页面统一处理 loading / IPC 失败 / 未安装 / 业务错误 / 正常（含 warning）几种状态。
+页面统一处理 loading / IPC 失败 / 未选择或空状态 / 业务错误 / 正常（含 warning）几种状态。
 
 ### `components/`
 
@@ -147,6 +184,10 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 | `StatusBadge.vue` | 状态标签，tone 为 `ok` / `warning` / `error` |
 | `IssueList.vue` | Android / iOS 的可修复问题列表 |
 | `EnvironmentRow.vue` | 总览页的开发环境行，整行可跳转 |
+| `DetailList.vue` | 通用「标签 / 值」详情列表，供项目分析和报告页复用 |
+| `CommandPalette.vue` | Cmd+K 快速跳转面板 |
+| `CopyButton.vue` | 通用复制按钮，带成功 / 失败反馈 |
+| `PathActions.vue` | 路径操作：复制 + 在 Finder 中显示 |
 
 组件只展示，不调用 IPC。
 
@@ -155,6 +196,11 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 | 文件 | 职责 |
 |---|---|
 | `rust-api.ts` | 所有 `invoke()` 调用集中在这里 |
+| `dialog.ts` | 原生目录 / 文件 / 保存对话框（`@tauri-apps/plugin-dialog`） |
+| `errors.ts` | 未知错误 → 用户可读字符串 |
+| `clipboard.ts` | 复制文本，兼容 Clipboard API 与旧接口 |
+| `install-guide.ts` | 工具链安装命令与下载页（只展示，不执行） |
+| `reveal.ts` | 在 Finder 中定位文件 / 打开外部链接（opener 插件） |
 | `status.ts` | 业务状态 → `StatusBadge` tone / 中文标签的统一映射 |
 
 所有 `invoke()` 集中在 `rust-api.ts`：
@@ -165,10 +211,21 @@ runFlutterDoctor()           → run_flutter_doctor
 detectAndroidEnvironment()   → detect_android_environment
 detectIosEnvironment()       → detect_ios_environment
 detectSystemInfo()           → detect_system_info
+detectToolchains()           → detect_toolchains
+analyzeFlutterProject(path)  → analyze_flutter_project
+analyzeBuildLog(path)        → analyze_build_log
+generateDiagnosticReport()   → generate_diagnostic_report
+saveDiagnosticReport(...)    → save_diagnostic_report
+renderDiagnosticReport(...)  → render_diagnostic_report
+loadDiagnosticReport(path)   → load_diagnostic_report
+checkFlutterOutdated(path)   → check_flutter_outdated
+saveLogExport(path, text)    → save_log_export
+printCurrentWindow()         → print_current_window
 ```
 
-命令名、参数名必须和 Rust 侧逐字一致。业务失败（未安装、缺组件）不 reject，
-通过返回值的 `status` / `issues` / `message` 表达；只有 IPC 或任务机制失败才 reject。
+命令名、参数名必须和 Rust 侧逐字一致。业务失败（未安装、缺组件、不是 Flutter
+项目、日志读不到）不 reject，通过返回值的 `status` / `issues` / `message` 表达；
+只有 IPC 或任务机制失败才 reject。
 
 ### `types/index.ts`
 
@@ -245,7 +302,7 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 ### `commands/environment.rs`
 
 薄转发层：把阻塞检测丢到 `spawn_blocking`，把机制性失败转成字符串。
-当前五个命令：
+当前六个命令：
 
 | 命令 | 服务 |
 |---|---|
@@ -254,6 +311,28 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 | `detect_android_environment` | `services::android::detect` |
 | `detect_ios_environment` | `services::ios::detect` |
 | `detect_system_info` | `services::system::detect` |
+| `detect_toolchains` | `services::toolchain::detect_all` |
+
+### `commands/analysis.rs`
+
+项目分析、日志分析与报告导出的薄转发层：
+
+| 命令 | 服务 |
+|---|---|
+| `analyze_flutter_project(path)` | `services::project::analyze` |
+| `analyze_build_log(path)` | `services::build_log::analyze` |
+| `generate_diagnostic_report(projectPath?, logPath?, force?)` | `services::report::generate` |
+| `save_diagnostic_report(report, format, path)` | `services::report::save` |
+| `render_diagnostic_report(report, format)` | `services::report::render` |
+| `load_diagnostic_report(path)` | `services::report::load` |
+| `check_flutter_outdated(path)` | `services::outdated::check` |
+| `save_log_export(path, content)` | 写入日志筛选结果 |
+| `print_current_window()` | 调用系统打印面板（可存为 PDF） |
+
+`save_diagnostic_report` 接收前端回传的报告对象，避免导出时重复执行耗时检测。
+文件写入在 Rust 完成；前端只通过原生保存对话框拿路径。
+环境与工具链命令都接受可选的 `force` 参数：页面首次加载复用 30 秒缓存，
+用户点「重新检测」时传 `true` 绕过；报告生成复用缓存，重新生成时强制刷新。
 
 ### `services/`
 
@@ -266,6 +345,16 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 | `android.rs` | 读取 SDK 目录、JDK `release` 文件、licenses、AVD；不启动 adb / emulator |
 | `ios.rs` | `xcode-select`、`xcodebuild`、`xcrun simctl`、`swift`、`pod`，带超时执行 |
 | `system.rs` | `sw_vers`、`sysctl`、`uname`、`scutil`，读取 macOS / 芯片 / 内存 / 机型 |
+| `toolchain.rs` | 并发检测 Python / Node.js / Git / Rust / Go / Java 的路径与版本 |
+| `cache.rs` | 按类型分槽的 30 秒检测缓存，支持 `force` 绕过 |
+| `project.rs` | 检查目录与 pubspec，组装平台 / Android / iOS / .metadata 信息；子模块负责解析 |
+| `project/pubspec.rs` | pubspec / .metadata 的最小 YAML 子集解析 |
+| `project/gradle.rs` | 从 `build.gradle(.kts)` 提取 applicationId / namespace / SDK 版本 |
+| `project/ios_project.rs` | 从 Podfile 与 `project.pbxproj` 提取部署目标、Bundle ID |
+| `build_log.rs` | 逐行统计错误 / 警告、合并重复行、识别构建结果 |
+| `outdated.rs` | 显式执行 `flutter pub outdated --json` 并解析依赖更新 |
+| `report.rs` | 聚合环境 / 项目 / 日志，计算摘要、渲染、载入与写盘 |
+| `report/markdown.rs` | 报告 → Markdown 的纯渲染函数 |
 
 关键设计：
 
@@ -285,6 +374,11 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 | `android.rs` | `AndroidStatus`、`AndroidSdkSource`、`JavaSource`、`JavaRuntime`、`AndroidEnvironment` |
 | `ios.rs` | `IosStatus`、`CocoaPodsSource`、`CocoaPodsInfo`、`SimulatorInfo`、`IosEnvironment` |
 | `system.rs` | `SystemInfo` |
+| `toolchain.rs` | `ToolchainKind`、`ToolchainStatus`、`ToolchainSource`、`ToolchainInfo` |
+| `outdated.rs` | `OutdatedStatus`、`OutdatedPackage`、`OutdatedReport` |
+| `project.rs` | `ProjectStatus`、`ProjectDependency`、`ProjectPlatform`、`AndroidProjectConfig`、`IosProjectConfig`、`ProjectAnalysis` |
+| `build_log.rs` | `BuildLogStatus`、`BuildOutcome`、`LogEntry`、`BuildLogAnalysis` |
+| `report.rs` | `ReportOptions`、`ReportSummary`、`DiagnosticReport`、`ReportFormat`、`SavedReport` |
 
 模型按检测对象拆分，不把 Android / iOS 字段塞进 `FlutterEnvironment`。
 总览页的聚合在 UI 层完成，避免后端出现 God model。
@@ -293,8 +387,10 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 
 | 文件 | 职责 |
 |---|---|
-| `fs.rs` | `home_dir`、`is_executable`（三个检测器共用） |
+| `executable.rs` | PATH / 登录 shell / 可执行权限的共用查找逻辑 |
+| `fs.rs` | `home_dir`、`is_executable`、`read_text_capped`（上限读取配置文件） |
 | `process.rs` | `run_with_timeout`、输出上限、`ProcessOutput` / `ProcessError` |
+| `time.rs` | 无依赖的 RFC 3339（UTC）格式化，供报告使用 |
 | `version.rs` | 按数字段比较版本，例如 `android-37.0` > `android-36` |
 
 `utils` 只放通用小工具，不要变成杂物间。
@@ -353,6 +449,31 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 - 模拟器：读取 `~/.android/avd/*.ini`，不启动 `emulator -list-avds`。
 - licenses：统计 `licenses/` 下的文件，不读取内容、不代执行 `sdkmanager --licenses`。
 
+### 常用工具链
+
+- 检测对象：Python（python3）、Node.js（node）、Git、Rust（rustc）、Go、Java。
+- PATH 拆分、登录 shell 执行和输出清洗与 Flutter / CocoaPods 共用
+  `utils/executable.rs`，不再各写一套。
+- 查找顺序：GUI PATH → 常见安装目录 → 登录 shell 的 `command -v`。
+- 常见目录覆盖 pyenv / conda、nvm / fnm / Volta / asdf、Homebrew、SDKMAN、
+  `/Library/Java/JavaVirtualMachines` 等版本管理器。
+- `/usr/bin` 等系统目录会排到候选末尾：macOS 自带的 `python3` / `java` 可能是
+  stub，开发者安装的版本优先；如果第一个候选执行失败，会继续尝试后续候选。
+- 版本命令：`python3 --version`、`node --version`、`git --version`、
+  `rustc --version`、`go version`、`java -version`（Java 输出在 stderr）。
+- macOS 没有 JDK 时 `/usr/bin/java` 只是提示安装的占位程序，这种情况归为
+  `NotFound` 而不是错误。
+- 各工具用 scoped thread 并发检测；单个工具最多 5 秒，缺失时尝试登录 shell。
+- 未安装或不可用的工具只影响工具链页展示，不改变诊断报告的总体结论。
+
+### 检测缓存
+
+- `services/cache.rs` 为每类检测维护一个 30 秒 TTL 的缓存槽。
+- 总览、环境详情和诊断报告共用同一份缓存；页面首次加载用缓存，手动刷新传
+  `force = true` 立即重测。
+- 缓存只在内存中，退出应用即失效；失败结果也会短暂缓存，避免 TTL 内反复启动
+  注定失败的外部命令。
+
 ### iOS / Xcode
 
 - 开发者目录：`xcode-select -p`。
@@ -363,6 +484,45 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 - Swift：`swift --version`。
 
 所有命令都有超时；检测失败不会 kill 用户的其他进程，也不会修改 Xcode 配置。
+
+### Flutter 项目分析
+
+- 输入是项目目录；没有 `pubspec.yaml` 直接判定为 `Error`，不会改目录内容。
+- pubspec / .metadata 用最小 YAML 子集解析器（块映射、块序列、引号、行尾注释、
+  `|` / `>` 块标量），不引入 YAML 依赖，也不执行 `flutter pub get`。
+- 依赖来源分为 pub.dev / SDK / Git / 本地路径；资源与字体只统计声明，不读取文件内容。
+- Android：优先 `android/app/build.gradle.kts`，否则 `build.gradle`；逐行匹配
+  `applicationId` / `namespace` / `compileSdk` / `minSdk` / `targetSdk`，
+  `flutter.compileSdkVersion` 这类表达式原样保留。
+- iOS：Podfile 的 `platform :ios` 优先作为部署目标，否则读 `project.pbxproj`；
+  Bundle ID 跳过 `Tests` target 和 `$(...)` 变量。
+- 配置文件读取有上限（pubspec / Gradle 1 MiB，pbxproj 4 MiB）。
+- 依赖列表支持前端筛选；资源声明解析成路径列表，可在页面展开查看。
+- 「检查依赖更新」显式执行 `flutter pub outdated --json`，需要联网，不修改
+  pubspec.yaml；结果包含当前 / 可升级 / 可解析 / 最新版本。
+
+### 构建日志
+
+- 以流式方式读取，最多分析 16 MiB / 200,000 行；超出时标记 `truncated`，不会把整个文件读进内存。
+- 非 UTF-8 字节用替换字符处理；先剥离 ANSI 颜色码，再做分类和合并。
+- 错误 / 警告是保守的启发式规则（`error` / `failed with` / `exception` / `warning` /
+  `[!]` 等），不追求每种工具链的完整语法。
+- 完全相同的行合并为一组，记录次数与首末行号；最多返回 50 组。
+- 识别 `BUILD SUCCESSFUL` / `BUILD FAILED` / `** BUILD SUCCEEDED **` 等构建结果标记。
+- 支持把日志文件拖进窗口分析；每条错误可复制内容或 `path:line`。
+- 「复制筛选结果」写入剪贴板；「导出筛选结果」通过原生保存对话框写成文本文件。
+
+### 诊断报告
+
+- `generate` 依次执行本机配置、三套环境检测与常用工具链检测，可选追加项目 /
+  日志分析；结果包含 `schemaVersion`（当前为 2）、UTC 生成时间和聚合摘要。
+- 工具链完整列表在报告的 `toolchains` 字段和 Markdown「常用工具链」表格中。
+- 报告页支持载入历史 JSON 做差异对比、复制 Markdown/JSON、打印或存为 PDF，
+  并记录最近导出。
+- `save` 接收前端回传的同一个报告对象，JSON 使用 pretty 格式，Markdown 由纯函数渲染。
+- 导出路径必须由用户通过原生保存对话框选择；Rust 负责创建文件，前端不直接写盘。
+- 导出成功后可在 Finder 中定位文件（opener 插件的 `revealItemInDir`）。
+- 报告只包含本机检测结果，不包含源码内容或日志全文。
 
 ---
 
@@ -400,7 +560,32 @@ npm run tauri dev
 
 ---
 
-## 九、绝对不要手改的文件
+## 九、macOS 打包
+
+`src-tauri/tauri.conf.json` 的 `bundle` 已配置为 macOS 桌面应用：
+
+| 项 | 值 |
+|---|---|
+| `targets` | `app`、`dmg` |
+| `category` | `DeveloperTool` |
+| `macOS.minimumSystemVersion` | `12.0` |
+| `dmg` | 660×400 窗口，应用与 Applications 快捷方式左右排列 |
+
+打包命令：
+
+```bash
+npm run tauri build
+```
+
+产物在 `src-tauri/target/release/bundle/`：
+`macos/DevScope.app` 与 `dmg/DevScope_0.1.0_aarch64.dmg`。
+
+当前没有配置 Apple Developer 证书和公证（notarization）。本机构建会使用 ad-hoc
+签名，可以自己运行；分发给其他用户前需要补签名与公证流程，这不属于 MVP 范围。
+
+---
+
+## 十、绝对不要手改的文件
 
 | 路径 | 原因 |
 |---|---|

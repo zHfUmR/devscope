@@ -20,16 +20,6 @@
 
 ---
 
-## 界面预览
-
-### 总览
-
-![总览：本机配置、常用开发环境与语言入口](docs/images/overview.png)
-
-### Flutter 环境检测
-
-![Flutter 环境检测：SDK 版本、安装详情与 flutter doctor 体检结果](docs/images/flutter-environment.png)
-
 ## 功能特性
 
 | 场景 | 说明 | 当前状态 |
@@ -39,10 +29,14 @@
 | Flutter 环境检测 | 定位 SDK、解析版本，按需运行 `flutter doctor -v` | 已完成 |
 | Android 环境检测 | SDK / platform / build-tools / JDK / licenses / AVD | 已完成 |
 | iOS 环境检测 | Xcode / CLT / CocoaPods / Swift / iOS 模拟器 | 已完成 |
-| Flutter 项目分析 | 解析项目配置、依赖与平台设置 | 规划中 |
-| 构建日志解析 | 读取构建输出并统计错误 | 规划中 |
-| 诊断报告导出 | 输出 JSON / Markdown 报告 | 规划中 |
+| 常用工具链检测 | Python / Node.js / Git / Rust / Go / Java 的路径与版本 | 已完成 |
+| Flutter 项目分析 | pubspec / 依赖筛选 / 资源 / Gradle / iOS 配置 / 依赖更新检查 | 已完成 |
+| 构建日志解析 | 拖放读取、错误聚合、复制与导出筛选结果 | 已完成 |
+| 诊断报告导出 | 汇总环境 / 项目 / 日志，JSON / Markdown、历史对比 | 已完成 |
+| 检测缓存 | 30 秒内复用环境与工具链结果，手动刷新可强制绕过 | 已完成 |
+| 界面体验 | 深色模式、Cmd+K 快速跳转、路径复制 / Finder 定位 | 已完成 |
 | 菜单栏常驻 | 状态栏图标，可显示主窗口 / 关于 / 退出 | 已完成 |
+| macOS 打包 | 输出 `.app` / `.dmg`（ad-hoc 签名，未公证） | 已完成 |
 | 工程骨架 | Tauri 2 + Vue 3 + TypeScript | 已完成 |
 
 ## 技术栈
@@ -81,18 +75,18 @@ npm run tauri build  # 产物在 src-tauri/target/release/bundle/
 devscope/
 ├── src/                         前端（Vue 3 + TypeScript）
 │   ├── router/                  路由（hash history）
-│   ├── views/                   总览 / Flutter / Android / iOS
+│   ├── views/                   总览 / 环境检测 / 项目 / 日志 / 报告
 │   ├── components/              可复用展示组件
-│   ├── services/                rust-api.ts 与状态映射
+│   ├── services/                rust-api、原生对话框、错误与状态映射
 │   ├── types/index.ts           与 Rust 模型一一对应的 TS 类型
 │   └── styles/app.css           设计令牌与共享样式
 └── src-tauri/                   Rust 后端
     └── src/
         ├── tray.rs              菜单栏常驻图标与菜单
         ├── commands/            前端可调用的命令（薄转发层）
-        ├── services/            Flutter / Android / iOS / 本机配置检测逻辑
+        ├── services/           环境检测 + 项目 / 日志 / 报告分析
         ├── models/              前后端数据契约
-        └── utils/               进程执行与版本比较
+        └── utils/               进程执行、文件读取、时间与版本处理
 ```
 
 详细的逐文件说明见 [docs/PROJECT-STRUCTURE.md](docs/PROJECT-STRUCTURE.md)。
@@ -104,11 +98,16 @@ devscope/
 - [x] Flutter 环境检测与 `flutter doctor` 摘要
 - [x] Android 环境检测（SDK / JDK / AVD）
 - [x] iOS 环境检测（Xcode / CocoaPods / 模拟器）
+- [x] 常用工具链检测（Python / Node.js / Git / Rust / Go / Java）
 - [x] 总览页与侧边栏导航
-- [ ] Flutter 项目配置分析
-- [ ] 日志解析与错误统计
-- [ ] JSON / Markdown 诊断报告导出
-- [ ] macOS .app / .dmg 打包
+- [x] Flutter 项目配置分析
+- [x] 日志解析与错误统计
+- [x] JSON / Markdown 诊断报告导出
+- [x] macOS .app / .dmg 打包
+- [x] 检测缓存与统一可执行文件发现
+- [x] 深色模式、Cmd+K 命令面板与路径操作
+- [x] 安装引导、日志增强、项目依赖更新检查
+- [x] 报告历史对比与最近导出
 
 ## License
 

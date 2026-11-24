@@ -9,18 +9,38 @@
   --bg: #f5f5f7;
   --surface: #ffffff;
   --surface-soft: #fbfbfd;
+  --surface-hover: #fafafc;
+  --surface-code: #f2f2f5;
+  --surface-code-block: #f6f6f8;
+  --code-text: #3a3a3c;
   --border: #e5e5ea;
+  --border-strong: #d0d0d6;
+  --border-soft: #f0f0f3;
+  --hairline: rgba(0, 0, 0, 0.06);
   --text: #1d1d1f;
   --text-secondary: #6e6e73;
   --text-tertiary: #8e8e93;
   --accent: #0071e3;
+  --on-brand: #ffffff;
+  --on-accent: #ffffff;
   --ok: #1a7f45;
   --ok-soft: #e9f7ef;
+  --ok-border: #cde9d8;
   --warning: #9a5b00;
   --warning-soft: #fff4e5;
+  --warning-border: #f0dfc4;
+  --warning-surface: #fffdf8;
   --error: #c0352b;
   --error-soft: #fdecea;
+  --error-border: #f1d4d1;
+  --error-surface: #fffdfd;
+  --sidebar-bg: rgba(255, 255, 255, 0.58);
+  --body-glow: #ffffff;
+  --spinner-track: #d9d9df;
   --radius: 14px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-nav: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-accent: 0 2px 6px rgba(0, 113, 227, 0.24);
   --shadow:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 10px 30px rgba(0, 0, 0, 0.04);
@@ -32,6 +52,52 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * 跟随 macOS 外观。只覆盖令牌，页面和组件不需要写第二套样式。
+ * 深色下仍保留品牌的蓝色渐变，只调整表面、文字、边框和状态底色。
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --surface-soft: #242426;
+    --surface-hover: #3a3a3c;
+    --surface-code: #1f1f21;
+    --surface-code-block: #171719;
+    --code-text: #d1d1d6;
+    --border: #3a3a3c;
+    --border-strong: #48484a;
+    --border-soft: #333336;
+    --hairline: rgba(255, 255, 255, 0.08);
+    --text: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --text-tertiary: #8e8e93;
+    --accent: #4da3ff;
+    --on-accent: #0b1c2c;
+    --ok: #4cd07d;
+    --ok-soft: rgba(52, 199, 89, 0.16);
+    --ok-border: rgba(52, 199, 89, 0.35);
+    --warning: #f0b35a;
+    --warning-soft: rgba(255, 159, 10, 0.14);
+    --warning-border: rgba(255, 159, 10, 0.35);
+    --warning-surface: #2a2118;
+    --error: #ff6961;
+    --error-soft: rgba(255, 69, 58, 0.14);
+    --error-border: rgba(255, 69, 58, 0.35);
+    --error-surface: #2b1d1c;
+    --sidebar-bg: rgba(28, 28, 30, 0.72);
+    --body-glow: #2c2c2e;
+    --spinner-track: #48484a;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-nav: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-accent: 0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 10px 30px rgba(0, 0, 0, 0.35);
+  }
 }
 
 * {
@@ -48,7 +114,7 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(1000px 520px at 50% -220px, #ffffff 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(1000px 520px at 50% -220px, var(--body-glow) 0%, transparent 70%),
     var(--bg);
 }
 
@@ -125,7 +191,7 @@ h1 {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-card);
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease,
@@ -133,8 +199,8 @@ h1 {
 }
 
 .refresh:hover:not(:disabled) {
-  border-color: #d0d0d6;
-  background: #fafafc;
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
 }
 
 .refresh:active:not(:disabled) {
@@ -277,8 +343,8 @@ h1 {
 }
 
 .state-card--error {
-  border-color: #f1d4d1;
-  background: #fffdfd;
+  border-color: var(--error-border);
+  background: var(--error-surface);
 }
 
 .state-body {
@@ -370,13 +436,13 @@ h1 {
 }
 
 .callout--warning {
-  border-color: #f0dfc4;
+  border-color: var(--warning-border);
   background: var(--warning-soft);
   color: var(--warning);
 }
 
 .callout--error {
-  border-color: #f1d4d1;
+  border-color: var(--error-border);
   background: var(--error-soft);
   color: var(--error);
 }
@@ -398,7 +464,7 @@ h1 {
 code {
   padding: 1px 5px;
   border-radius: 4px;
-  background: #f2f2f5;
+  background: var(--surface-code);
   color: var(--text);
   font-family: "SFMono-Regular", ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.92em;
@@ -430,7 +496,7 @@ code {
 
 .checked li {
   padding: 5px 0;
-  border-top: 1px solid #f0f0f3;
+  border-top: 1px solid var(--border-soft);
   color: var(--text-secondary);
   font-size: 11.5px;
 }
@@ -446,7 +512,7 @@ code {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border: 2px solid #d9d9df;
+  border: 2px solid var(--spinner-track);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
@@ -485,5 +551,69 @@ code {
   .detail-row {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+}
+
+/* ---------- 打印 ---------- */
+
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-soft: #fafafa;
+    --surface-hover: #f5f5f5;
+    --surface-code: #f2f2f5;
+    --surface-code-block: #f6f6f8;
+    --code-text: #3a3a3c;
+    --border: #e5e5ea;
+    --border-strong: #d0d0d6;
+    --border-soft: #f0f0f3;
+    --hairline: rgba(0, 0, 0, 0.06);
+    --text: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-tertiary: #8e8e93;
+    --accent: #0071e3;
+    --ok: #1a7f45;
+    --ok-soft: #e9f7ef;
+    --ok-border: #cde9d8;
+    --warning: #9a5b00;
+    --warning-soft: #fff4e5;
+    --warning-border: #f0dfc4;
+    --error: #c0352b;
+    --error-soft: #fdecea;
+    --error-border: #f1d4d1;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .sidebar,
+  .page-header,
+  .options-card,
+  .export-card,
+  .summary-actions .refresh,
+  .drop-overlay {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+  }
+
+  .content {
+    max-width: none;
+    padding: 0;
+  }
+
+  .card {
+    border-color: #dddddd;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .palette-overlay {
+    display: none !important;
   }
 }

@@ -13,6 +13,7 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use crate::models::environment::{FlutterEnvironment, FlutterExecutableSource, FlutterStatus, FlutterVersionInfo};
+use crate::utils::executable;
 use crate::utils::fs::{home_dir, is_executable};
 use crate::utils::process::{self, ProcessError};
 
@@ -25,9 +26,6 @@ const FLUTTER_BINARY: &str = "flutter";
 
 /// 登录 shell 是最后兜底；超时太短会误判慢启动的 shell，太长会拖慢检测。
 const LOGIN_SHELL_TIMEOUT: Duration = Duration::from_secs(5);
-
-/// macOS 默认 shell 及兼容 shell。按顺序尝试，找到可执行路径即停止。
-const LOGIN_SHELLS: [&str; 2] = ["/bin/zsh", "/bin/bash"];
 
 /// 固定命令，不拼接任何外部输入。`command -v` 不会执行 flutter，只解析路径。
 const LOGIN_SHELL_COMMAND: &str = "command -v flutter";
@@ -42,7 +40,7 @@ const MESSAGE_EXCERPT_CHARS: usize = 300;
 const VERSION_ARGS: [&str; 3] = ["--no-version-check", "--version", "--machine"];
 
 /// 抑制 Flutter 匿名统计，减少检测过程对外部服务的访问。
-const FLUTTER_ANALYTICS_ENV: &str = "FLUTTER_SUPPRESS_ANALYTICS";
+pub(crate) const FLUTTER_ANALYTICS_ENV: &str = "FLUTTER_SUPPRESS_ANALYTICS";
 
 /// 一个待验证的 Flutter 可执行文件候选。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,6 +69,11 @@ fn discover_flutter() -> FlutterDiscovery {
     candidates.extend(common_install_candidates());
 
     discover_with(candidates, candidates_from_login_shell)
+}
+
+/// 返回 flutter 可执行文件路径；`pub outdated` 等扩展功能复用同一套发现逻辑。
+pub(crate) fn executable_path() -> Option<PathBuf> {
+    discover_flutter().executable.map(|candidate| candidate.path)
 }
 
 /// 在已有候选上完成「命中判断 + 登录 shell 回退」。
@@ -114,26 +117,13 @@ fn candidates_from_path() -> Vec<FlutterCandidate> {
 /// 只接受绝对路径：GUI 进程的当前目录没有 shell 语义，相对路径不可靠。
 /// 抽出参数版本是为了测试时不用修改进程级环境变量。
 fn candidates_from_path_var(path_var: Option<&OsStr>) -> Vec<FlutterCandidate> {
-    let Some(path_var) = path_var else {
-        return Vec::new();
-    };
-
-    let mut candidates = Vec::new();
-    for directory in env::split_paths(path_var) {
-        if !directory.is_absolute() {
-            continue;
-        }
-
-        push_candidate(
-            &mut candidates,
-            FlutterCandidate {
-                path: directory.join(FLUTTER_BINARY),
-                source: FlutterExecutableSource::Path,
-            },
-        );
-    }
-
-    candidates
+    executable::path_candidates(FLUTTER_BINARY, path_var)
+        .into_iter()
+        .map(|path| FlutterCandidate {
+            path,
+            source: FlutterExecutableSource::Path,
+        })
+        .collect()
 }
 
 /// 常见安装目录：Android Studio 安装器、Homebrew、FVM 默认版本等。
@@ -171,54 +161,11 @@ fn common_install_candidates_for(home: Option<&Path>) -> Vec<FlutterCandidate> {
 /// shell 启动时可能加载 `.zprofile` / `.zshrc`，所以设置 5 秒超时；
 /// 只执行固定命令，绝不把外部输入拼进 shell 字符串。
 fn candidates_from_login_shell() -> Vec<FlutterCandidate> {
-    for shell in LOGIN_SHELLS {
-        if !Path::new(shell).is_file() {
-            continue;
-        }
-
-        let mut command = Command::new(shell);
-        command.args(["-lc", LOGIN_SHELL_COMMAND]);
-
-        let Ok(output) = process::run_with_timeout(&mut command, LOGIN_SHELL_TIMEOUT) else {
-            continue;
-        };
-        if !output.success() {
-            continue;
-        }
-
-        let candidates: Vec<FlutterCandidate> = parse_login_shell_paths(&output.stdout)
-            .into_iter()
-            .filter(|path| is_executable(path))
-            .map(|path| FlutterCandidate {
-                path,
-                source: FlutterExecutableSource::LoginShell,
-            })
-            .collect();
-
-        if !candidates.is_empty() {
-            return candidates;
-        }
-    }
-
-    Vec::new()
-}
-
-/// 从登录 shell 输出中提取绝对 flutter 路径。
-///
-/// shell 配置可能打印欢迎语或插件提示，因此逐行筛选；倒序返回，
-/// 让 `command -v` 最后输出的真实路径优先。
-fn parse_login_shell_paths(stdout: &str) -> Vec<PathBuf> {
-    stdout
-        .lines()
-        .rev()
-        .filter_map(|line| {
-            let path = Path::new(line.trim());
-
-            if path.is_absolute() && path.file_name() == Some(OsStr::new(FLUTTER_BINARY)) {
-                Some(path.to_path_buf())
-            } else {
-                None
-            }
+    executable::login_shell_paths(FLUTTER_BINARY, LOGIN_SHELL_COMMAND, LOGIN_SHELL_TIMEOUT)
+        .into_iter()
+        .map(|path| FlutterCandidate {
+            path,
+            source: FlutterExecutableSource::LoginShell,
         })
         .collect()
 }
@@ -509,7 +456,7 @@ mod tests {
     fn parses_login_shell_paths_with_noise() {
         let stdout = "Welcome to zsh\n/opt/homebrew/bin/flutter\n/usr/local/bin/flutter\n";
 
-        let paths = parse_login_shell_paths(stdout);
+        let paths = executable::parse_login_shell_paths(stdout, FLUTTER_BINARY);
 
         assert_eq!(
             paths,
@@ -525,7 +472,7 @@ mod tests {
     fn ignores_relative_and_non_flutter_login_shell_lines() {
         let stdout = "flutter\n./flutter\n/usr/bin/flutter-wrapper\n  /opt/flutter/bin/flutter  \n";
 
-        let paths = parse_login_shell_paths(stdout);
+        let paths = executable::parse_login_shell_paths(stdout, FLUTTER_BINARY);
 
         assert_eq!(paths, vec![PathBuf::from("/opt/flutter/bin/flutter")]);
     }

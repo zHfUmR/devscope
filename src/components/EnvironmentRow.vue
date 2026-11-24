@@ -57,7 +57,7 @@ defineProps<{
   border-radius: 12px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-card);
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease,
@@ -65,8 +65,8 @@ defineProps<{
 }
 
 .env-row:hover {
-  border-color: #d0d0d6;
-  background: #fafafc;
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
   text-decoration: none;
 }
 

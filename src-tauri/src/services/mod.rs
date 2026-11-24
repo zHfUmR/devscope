@@ -1,4 +1,10 @@
 pub mod android;
+pub mod build_log;
+pub mod cache;
 pub mod flutter;
 pub mod ios;
+pub mod outdated;
+pub mod project;
+pub mod report;
 pub mod system;
+pub mod toolchain;

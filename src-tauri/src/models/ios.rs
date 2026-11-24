@@ -3,10 +3,10 @@
 //! iOS 工具链由 Xcode、Command Line Tools、CocoaPods 和模拟器组成。
 //! Xcode 的授权状态和模拟器列表都是可选项，缺任何一项都会体现在 `issues` 中。
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// 一次 iOS 环境检测的业务结论。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum IosStatus {
     /// Xcode、CocoaPods 和模拟器都可用。
@@ -20,7 +20,7 @@ pub enum IosStatus {
 }
 
 /// CocoaPods 可执行文件的发现方式。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CocoaPodsSource {
     /// 来自 GUI 进程继承的 PATH。
@@ -32,7 +32,7 @@ pub enum CocoaPodsSource {
 }
 
 /// 一个可用的 CocoaPods 安装。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CocoaPodsInfo {
     /// `pod` 可执行文件的绝对路径。
@@ -44,7 +44,7 @@ pub struct CocoaPodsInfo {
 }
 
 /// iOS 模拟器的汇总信息。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SimulatorInfo {
     /// 可用的 iOS 模拟器数量。
@@ -54,7 +54,7 @@ pub struct SimulatorInfo {
 }
 
 /// 一次 iOS / Xcode 环境检测的完整结果。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IosEnvironment {
     /// 业务结论，而不是 IPC 层的成功/失败。

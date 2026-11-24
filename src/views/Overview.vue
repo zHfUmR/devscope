@@ -15,12 +15,15 @@ import {
   detectFlutterEnvironment,
   detectIosEnvironment,
   detectSystemInfo,
+  detectToolchains,
 } from "../services/rust-api";
 import type {
   AndroidEnvironment,
   FlutterEnvironment,
   IosEnvironment,
   SystemInfo,
+  ToolchainInfo,
+  ToolchainKind,
 } from "../types";
 
 type Tone = "ok" | "warning" | "error";
@@ -48,6 +51,7 @@ const system = ref<Loadable<SystemInfo>>(loadingState());
 const flutter = ref<Loadable<FlutterEnvironment>>(loadingState());
 const android = ref<Loadable<AndroidEnvironment>>(loadingState());
 const ios = ref<Loadable<IosEnvironment>>(loadingState());
+const toolchains = ref<Loadable<ToolchainInfo[]>>(loadingState());
 const started = ref(false);
 
 function loadingState<T>(): Loadable<T> {
@@ -59,7 +63,9 @@ const envLoading = computed(
 );
 
 /** 首次挂载时 loading 初始为 true，因此不能直接用 loading 当「正在刷新」守卫。 */
-const loading = computed(() => system.value.loading || envLoading.value);
+const loading = computed(
+  () => system.value.loading || envLoading.value || toolchains.value.loading,
+);
 
 function toMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
@@ -84,7 +90,7 @@ function loadInto<T>(target: Ref<Loadable<T>>, promise: Promise<T>): Promise<voi
 }
 
 /** 四个检测并行执行；某一个失败只影响它自己的展示。 */
-async function refresh(): Promise<void> {
+async function refresh(force = false): Promise<void> {
   if (started.value && loading.value) {
     return;
   }
@@ -94,12 +100,14 @@ async function refresh(): Promise<void> {
   flutter.value = loadingState();
   android.value = loadingState();
   ios.value = loadingState();
+  toolchains.value = loadingState();
 
   await Promise.allSettled([
-    loadInto(system, detectSystemInfo()),
-    loadInto(flutter, detectFlutterEnvironment()),
-    loadInto(android, detectAndroidEnvironment()),
-    loadInto(ios, detectIosEnvironment()),
+    loadInto(system, detectSystemInfo(force)),
+    loadInto(flutter, detectFlutterEnvironment(force)),
+    loadInto(android, detectAndroidEnvironment(force)),
+    loadInto(ios, detectIosEnvironment(force)),
+    loadInto(toolchains, detectToolchains(force)),
   ]);
 }
 
@@ -227,6 +235,77 @@ function issuesMeta(issues: string[] | undefined): string {
   return count > 0 ? `${count} 项需注意` : "";
 }
 
+const toolchainList = computed<ToolchainInfo[]>(() => toolchains.value.data ?? []);
+
+const availableToolchains = computed(
+  () => toolchainList.value.filter((tool) => tool.status === "ok").length,
+);
+
+const toolchainBadge = computed<{ tone: Tone; label: string }>(() => {
+  if (toolchains.value.loading) {
+    return { tone: "warning", label: "检测中" };
+  }
+  if (toolchains.value.error) {
+    return { tone: "error", label: "调用失败" };
+  }
+
+  const total = toolchainList.value.length;
+  if (total === 0) {
+    return { tone: "warning", label: "无结果" };
+  }
+  if (toolchainList.value.some((tool) => tool.status === "error")) {
+    return { tone: "error", label: "需处理" };
+  }
+  if (availableToolchains.value === 0) {
+    return { tone: "warning", label: "未安装" };
+  }
+  if (availableToolchains.value < total) {
+    return { tone: "warning", label: `${availableToolchains.value}/${total} 可用` };
+  }
+
+  return { tone: "ok", label: "全部可用" };
+});
+
+const toolchainHeadline = computed(() => {
+  if (toolchains.value.loading || toolchains.value.error) {
+    return "";
+  }
+
+  const installed = toolchainList.value.filter((tool) => tool.status === "ok");
+  if (installed.length === 0) {
+    return "未检测到常用工具链";
+  }
+
+  const preview = installed
+    .slice(0, 3)
+    .map((tool) => `${tool.name} ${tool.version ?? ""}`.trim())
+    .join(" · ");
+
+  return installed.length > 3 ? `${preview} 等 ${installed.length} 个` : preview;
+});
+
+function toolchainVersion(kind: ToolchainKind): string {
+  if (toolchains.value.loading) {
+    return "检测中…";
+  }
+  if (toolchains.value.error) {
+    return "检测失败";
+  }
+
+  const tool = toolchainList.value.find((item) => item.kind === kind);
+  if (!tool) {
+    return "未检测";
+  }
+  if (tool.status === "notFound") {
+    return "未安装";
+  }
+  if (tool.status === "error") {
+    return "检测异常";
+  }
+
+  return tool.version ?? "版本未知";
+}
+
 function languageVersion(
   loading: boolean,
   error: string | null,
@@ -276,6 +355,27 @@ const languages = computed<Language[]>(() => [
     env: "iOS / Xcode",
     to: "/environment/ios",
   },
+  {
+    name: "Python",
+    detail: "python3",
+    version: toolchainVersion("python"),
+    env: "常用工具链",
+    to: "/environment/toolchains",
+  },
+  {
+    name: "Node.js",
+    detail: "node",
+    version: toolchainVersion("node"),
+    env: "常用工具链",
+    to: "/environment/toolchains",
+  },
+  {
+    name: "Rust",
+    detail: "rustc",
+    version: toolchainVersion("rust"),
+    env: "常用工具链",
+    to: "/environment/toolchains",
+  },
 ]);
 </script>
 
@@ -290,7 +390,7 @@ const languages = computed<Language[]>(() => [
         </p>
       </div>
 
-      <button class="refresh" type="button" :disabled="loading" @click="refresh">
+      <button class="refresh" type="button" :disabled="loading" @click="refresh(true)">
         <span v-if="loading" class="spinner spinner--small" aria-hidden="true"></span>
         {{ loading ? "检测中…" : "刷新" }}
       </button>
@@ -358,6 +458,16 @@ const languages = computed<Language[]>(() => [
           :loading="ios.loading"
           :error="ios.error"
           to="/environment/ios"
+        />
+        <EnvironmentRow
+          title="常用工具链"
+          monogram="工"
+          :tone="toolchainBadge.tone"
+          :status-label="toolchainBadge.label"
+          :headline="toolchainHeadline"
+          :loading="toolchains.loading"
+          :error="toolchains.error"
+          to="/environment/toolchains"
         />
       </div>
     </section>
@@ -470,15 +580,15 @@ const languages = computed<Language[]>(() => [
   border-radius: 12px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-card);
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
 }
 
 .language-card:hover {
-  border-color: #d0d0d6;
-  background: #fafafc;
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
   text-decoration: none;
 }
 

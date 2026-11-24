@@ -117,7 +117,7 @@ const cocoapodsDetails = computed<DetailRow[]>(() => {
 });
 
 /** 执行一次检测；请求进行中按钮保持禁用。 */
-async function refresh(): Promise<void> {
+async function refresh(force = false): Promise<void> {
   if (loading.value) {
     return;
   }
@@ -126,7 +126,7 @@ async function refresh(): Promise<void> {
   ipcError.value = null;
 
   try {
-    environment.value = await detectIosEnvironment();
+    environment.value = await detectIosEnvironment(force);
   } catch (error) {
     environment.value = null;
     ipcError.value =
@@ -155,7 +155,7 @@ onMounted(() => {
         </p>
       </div>
 
-      <button class="refresh" type="button" :disabled="loading" @click="refresh">
+      <button class="refresh" type="button" :disabled="loading" @click="refresh(true)">
         <span v-if="loading" class="spinner spinner--small" aria-hidden="true"></span>
         {{ loading ? "检测中…" : "重新检测" }}
       </button>

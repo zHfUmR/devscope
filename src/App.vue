@@ -3,19 +3,30 @@
  * 应用外壳：左侧导航 + 右侧路由出口。
  *
  * 「总览」展示本机配置和常用环境；「环境检测」是可折叠分组，子项按检测对象
- * 划分。项目分析、日志分析等尚未实现，先以不可点击的占位项展示。
+ * 划分；「项目与日志」包含项目分析、日志分析和诊断报告三个独立页面。
  */
-import { KeepAlive, ref, watch } from "vue";
+import { KeepAlive, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
+import CommandPalette from "./components/CommandPalette.vue";
 
 const route = useRoute();
 const envOpen = ref(true);
+const paletteOpen = ref(false);
 
-const upcoming = [
-  { monogram: "项", label: "项目分析", hint: "Flutter 项目配置与依赖" },
-  { monogram: "日", label: "日志分析", hint: "构建日志与错误统计" },
-  { monogram: "报", label: "诊断报告", hint: "JSON / Markdown 导出" },
-];
+function onGlobalKeydown(event: KeyboardEvent): void {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    paletteOpen.value = !paletteOpen.value;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", onGlobalKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", onGlobalKeydown);
+});
 
 // 从总览或外部跳到环境页时，自动展开分组，避免当前页面入口被折叠隐藏。
 watch(
@@ -84,19 +95,35 @@ watch(
             >
               iOS / Xcode
             </RouterLink>
+            <RouterLink
+              class="nav-link nav-link--child"
+              to="/environment/toolchains"
+              active-class="nav-link--active"
+            >
+              常用工具链
+            </RouterLink>
           </div>
         </div>
 
-        <p class="nav-label">即将推出</p>
-        <div v-for="item in upcoming" :key="item.label" class="nav-placeholder">
-          <span class="nav-icon" aria-hidden="true">{{ item.monogram }}</span>
-          <span class="placeholder-copy">
-            <span>{{ item.label }}</span>
-            <small>{{ item.hint }}</small>
-          </span>
-          <span class="soon">规划中</span>
-        </div>
+        <p class="nav-label">项目与日志</p>
+        <RouterLink class="nav-link" to="/project" active-class="nav-link--active">
+          <span class="nav-icon" aria-hidden="true">项</span>
+          项目分析
+        </RouterLink>
+        <RouterLink class="nav-link" to="/logs" active-class="nav-link--active">
+          <span class="nav-icon" aria-hidden="true">日</span>
+          日志分析
+        </RouterLink>
+        <RouterLink class="nav-link" to="/report" active-class="nav-link--active">
+          <span class="nav-icon" aria-hidden="true">报</span>
+          诊断报告
+        </RouterLink>
       </nav>
+
+      <button class="nav-shortcut" type="button" @click="paletteOpen = true">
+        <span>快速跳转</span>
+        <kbd>⌘K</kbd>
+      </button>
 
       <div class="sidebar-footer">
         <span class="local-dot" aria-hidden="true"></span>
@@ -111,6 +138,8 @@ watch(
         </KeepAlive>
       </RouterView>
     </main>
+
+    <CommandPalette v-model:open="paletteOpen" />
   </div>
 </template>
 
@@ -129,8 +158,8 @@ watch(
   gap: 24px;
   height: 100vh;
   padding: 22px 16px 18px;
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.58);
+  border-right: 1px solid var(--hairline);
+  background: var(--sidebar-bg);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
@@ -149,11 +178,11 @@ watch(
   height: 30px;
   border-radius: 9px;
   background: linear-gradient(145deg, #0071e3, #42a5f5);
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgba(0, 113, 227, 0.24);
+  box-shadow: var(--shadow-accent);
 }
 
 .brand-copy {
@@ -203,7 +232,7 @@ watch(
 }
 
 .nav-link:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--surface-hover);
   color: var(--text);
   text-decoration: none;
 }
@@ -211,7 +240,7 @@ watch(
 .nav-link--active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-nav);
 }
 
 .nav-icon {
@@ -232,7 +261,7 @@ watch(
 .nav-link--active .nav-icon {
   border-color: transparent;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .nav-group {
@@ -258,7 +287,7 @@ watch(
 }
 
 .nav-group-toggle:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--surface-hover);
   color: var(--text);
 }
 
@@ -297,49 +326,41 @@ watch(
   font-weight: 500;
 }
 
-.nav-placeholder {
+.nav-shortcut {
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
   padding: 7px 10px;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--text-tertiary);
-}
-
-.nav-placeholder .nav-icon {
-  opacity: 0.65;
-}
-
-.placeholder-copy {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.2;
-}
-
-.placeholder-copy span {
+  background: var(--surface-soft);
+  color: var(--text-secondary);
   font-size: 11.5px;
   font-weight: 600;
+  cursor: pointer;
 }
 
-.placeholder-copy small {
-  overflow: hidden;
-  color: var(--text-tertiary);
-  font-size: 9.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.nav-shortcut:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
-.soon {
-  flex-shrink: 0;
-  padding: 2px 5px;
+.nav-shortcut:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.nav-shortcut kbd {
+  padding: 1px 5px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: var(--surface-soft);
+  background: var(--surface);
   color: var(--text-tertiary);
-  font-size: 9px;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 9.5px;
 }
 
 .sidebar-footer {
@@ -378,7 +399,7 @@ watch(
     gap: 14px;
     padding: 14px 18px;
     border-right: 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--hairline);
   }
 
   .nav {
@@ -410,7 +431,7 @@ watch(
     padding-left: 10px;
   }
 
-  .nav-placeholder {
+  .nav-shortcut {
     display: none;
   }
 

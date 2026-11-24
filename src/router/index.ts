@@ -7,9 +7,13 @@
 
 import { createRouter, createWebHashHistory } from "vue-router";
 import AndroidEnvironment from "../views/AndroidEnvironment.vue";
+import DiagnosticReport from "../views/DiagnosticReport.vue";
 import FlutterEnvironment from "../views/FlutterEnvironment.vue";
 import IosEnvironment from "../views/IosEnvironment.vue";
+import LogAnalysis from "../views/LogAnalysis.vue";
 import Overview from "../views/Overview.vue";
+import ProjectAnalysis from "../views/ProjectAnalysis.vue";
+import Toolchains from "../views/Toolchains.vue";
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -39,6 +43,30 @@ const router = createRouter({
       name: "ios",
       component: IosEnvironment,
       meta: { title: "iOS / Xcode" },
+    },
+    {
+      path: "/environment/toolchains",
+      name: "toolchains",
+      component: Toolchains,
+      meta: { title: "常用工具链" },
+    },
+    {
+      path: "/project",
+      name: "project",
+      component: ProjectAnalysis,
+      meta: { title: "项目分析" },
+    },
+    {
+      path: "/logs",
+      name: "logs",
+      component: LogAnalysis,
+      meta: { title: "日志分析" },
+    },
+    {
+      path: "/report",
+      name: "report",
+      component: DiagnosticReport,
+      meta: { title: "诊断报告" },
     },
     {
       path: "/:pathMatch(.*)*",

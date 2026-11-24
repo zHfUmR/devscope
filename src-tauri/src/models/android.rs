@@ -3,10 +3,10 @@
 //! Android 的“环境”由 SDK 目录、JDK 和模拟器三部分组成，所以模型是组合式的，
 //! 不把字段塞进 Flutter 模型。字段经 serde 转为 camelCase，与前端 TS 一一对应。
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// 一次 Android 环境检测的业务结论。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AndroidStatus {
     /// SDK、JDK、platform、build-tools、licenses 以及 adb / emulator / sdkmanager 都可用。
@@ -20,7 +20,7 @@ pub enum AndroidStatus {
 }
 
 /// Android SDK 是通过哪种方式发现的。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AndroidSdkSource {
     /// 来自 `ANDROID_HOME` 或 `ANDROID_SDK_ROOT`。
@@ -30,7 +30,7 @@ pub enum AndroidSdkSource {
 }
 
 /// JDK 的发现方式，用于解释为什么选了这个 Java。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum JavaSource {
     /// 来自 `JAVA_HOME`。
@@ -42,7 +42,7 @@ pub enum JavaSource {
 }
 
 /// 一个可用的 JDK。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JavaRuntime {
     /// JDK 根目录（包含 `bin/java` 的目录）。
@@ -54,7 +54,7 @@ pub struct JavaRuntime {
 }
 
 /// 一次 Android 环境检测的完整结果。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AndroidEnvironment {
     /// 业务结论，而不是 IPC 层的成功/失败。

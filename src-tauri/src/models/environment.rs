@@ -1,9 +1,9 @@
 //! 开发环境检测的数据契约。字段经 serde 转为 camelCase，与前端 TS 一一对应。
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// 一次 Flutter 环境检测的业务结论。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FlutterStatus {
     /// 找到 flutter 且版本信息解析成功。
@@ -15,7 +15,7 @@ pub enum FlutterStatus {
 }
 
 /// flutter 可执行文件的发现方式，用于向用户解释检测结果。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FlutterExecutableSource {
     /// 来自 GUI 进程继承的 PATH。
@@ -27,7 +27,7 @@ pub enum FlutterExecutableSource {
 }
 
 /// `flutter --version --machine` 中与版本相关的字段。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FlutterVersionInfo {
     /// Flutter 框架版本，例如 3.35.3。
@@ -47,7 +47,7 @@ pub struct FlutterVersionInfo {
 }
 
 /// 一次 Flutter 环境检测的完整结果。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FlutterEnvironment {
     /// 业务结论，而不是 IPC 层的成功/失败。

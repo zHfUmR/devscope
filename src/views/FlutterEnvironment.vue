@@ -192,7 +192,7 @@ function sectionLabel(status: DoctorStatus): string {
 }
 
 /** 执行一次检测；按钮在请求进行中保持禁用。 */
-async function refresh(): Promise<void> {
+async function refresh(force = false): Promise<void> {
   if (loading.value) {
     return;
   }
@@ -201,7 +201,7 @@ async function refresh(): Promise<void> {
   ipcError.value = null;
 
   try {
-    environment.value = await detectFlutterEnvironment();
+    environment.value = await detectFlutterEnvironment(force);
   } catch (error) {
     environment.value = null;
     ipcError.value =
@@ -257,7 +257,7 @@ async function runDoctor(): Promise<void> {
         </p>
       </div>
 
-      <button class="refresh" type="button" :disabled="loading" @click="refresh">
+      <button class="refresh" type="button" :disabled="loading" @click="refresh(true)">
         <span v-if="loading" class="spinner spinner--small" aria-hidden="true"></span>
         {{ loading ? "检测中…" : "重新检测" }}
       </button>
@@ -581,8 +581,8 @@ async function runDoctor(): Promise<void> {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #f6f6f8;
-  color: #3a3a3c;
+  background: var(--surface-code-block);
+  color: var(--code-text);
   font-family: "SFMono-Regular", ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 11.5px;
   line-height: 1.55;

@@ -149,3 +149,203 @@ export interface SystemInfo {
   memoryBytes: number | null;
   hostname: string | null;
 }
+
+/** 一次项目分析的业务结论。 */
+export type ProjectStatus = "ok" | "warning" | "error";
+
+/** 依赖在 pubspec.yaml 中属于哪一组。 */
+export type DependencyKind = "regular" | "dev" | "override";
+
+/** 依赖的来源类型。 */
+export type DependencySource = "hosted" | "sdk" | "git" | "path" | "unknown";
+
+/** pubspec.yaml 中声明的一个依赖。 */
+export interface ProjectDependency {
+  name: string;
+  /** 版本约束或来源描述；`any` 等空约束为 null。 */
+  constraint: string | null;
+  kind: DependencyKind;
+  source: DependencySource;
+}
+
+/** 项目启用的目标平台。 */
+export type PlatformKind = "android" | "ios" | "web" | "macos" | "linux" | "windows";
+
+/** 一个已存在的平台目录。 */
+export interface ProjectPlatform {
+  platform: PlatformKind;
+  /** 相对项目根目录的目录名，例如 `android`。 */
+  directory: string;
+}
+
+/** Android 模块的关键 Gradle 配置。 */
+export interface AndroidProjectConfig {
+  /** 读取的 Gradle 文件，相对项目根目录。 */
+  gradleFile: string;
+  /** 是否为 Kotlin DSL（`build.gradle.kts`）。 */
+  kotlinDsl: boolean;
+  applicationId: string | null;
+  namespace: string | null;
+  compileSdk: string | null;
+  minSdk: string | null;
+  targetSdk: string | null;
+}
+
+/** iOS 模块的关键配置。 */
+export interface IosProjectConfig {
+  deploymentTarget: string | null;
+  bundleIdentifier: string | null;
+  podfilePresent: boolean;
+  workspacePresent: boolean;
+  infoPlistPresent: boolean;
+}
+
+/** `.metadata` 文件中的 Flutter 工具信息。 */
+export interface ProjectMetadata {
+  channel: string | null;
+  revision: string | null;
+  projectType: string | null;
+}
+
+/** 一次 Flutter 项目分析的完整结果。 */
+export interface ProjectAnalysis {
+  status: ProjectStatus;
+  rootPath: string;
+  name: string | null;
+  description: string | null;
+  version: string | null;
+  publishTo: string | null;
+  dartSdkConstraint: string | null;
+  flutterConstraint: string | null;
+  dependencies: ProjectDependency[];
+  devDependencies: ProjectDependency[];
+  dependencyOverrides: ProjectDependency[];
+  platforms: ProjectPlatform[];
+  usesMaterialDesign: boolean;
+  assetCount: number;
+  assets: string[];
+  fontFamilies: string[];
+  android: AndroidProjectConfig | null;
+  ios: IosProjectConfig | null;
+  metadata: ProjectMetadata | null;
+  issues: string[];
+  message: string | null;
+}
+
+/** 一条日志记录的级别。 */
+export type LogSeverity = "error" | "warning";
+
+/** 从日志中识别出的构建结果。 */
+export type BuildOutcome = "success" | "failure" | "unknown";
+
+/** 一次日志分析的业务结论。 */
+export type BuildLogStatus = "ok" | "warning" | "error";
+
+/** 一组内容相同的日志记录。 */
+export interface LogEntry {
+  severity: LogSeverity;
+  message: string;
+  count: number;
+  firstLine: number;
+  lastLine: number;
+}
+
+/** 一次构建日志分析的完整结果。 */
+export interface BuildLogAnalysis {
+  status: BuildLogStatus;
+  path: string;
+  fileName: string;
+  fileSizeBytes: number;
+  analyzedBytes: number;
+  totalLines: number;
+  truncated: boolean;
+  errorCount: number;
+  warningCount: number;
+  entries: LogEntry[];
+  omittedEntries: number;
+  buildOutcome: BuildOutcome;
+  message: string | null;
+}
+
+/** 报告的总体结论。 */
+export type ReportSummaryStatus = "ok" | "warning" | "error";
+
+/** 报告顶部的摘要。 */
+export interface ReportSummary {
+  status: ReportSummaryStatus;
+  issueCount: number;
+  highlights: string[];
+}
+
+/** 一次诊断的完整报告。 */
+export interface DiagnosticReport {
+  schemaVersion: number;
+  generator: string;
+  /** RFC 3339（UTC）生成时间。 */
+  generatedAt: string;
+  /** 生成时间的 Unix 毫秒时间戳。 */
+  generatedAtEpochMs: number;
+  system: SystemInfo;
+  flutter: FlutterEnvironment;
+  android: AndroidEnvironment;
+  ios: IosEnvironment;
+  toolchains: ToolchainInfo[];
+  project: ProjectAnalysis | null;
+  buildLog: BuildLogAnalysis | null;
+  summary: ReportSummary;
+}
+
+/** 导出格式。 */
+export type ReportFormat = "json" | "markdown";
+
+/** 导出成功后的结果。 */
+export interface SavedReport {
+  path: string;
+  format: ReportFormat;
+  bytes: number;
+}
+
+/** 支持的常用工具链。 */
+export type ToolchainKind = "python" | "node" | "git" | "rust" | "go" | "java";
+
+/** 一次工具链检测的业务结论。 */
+export type ToolchainStatus = "ok" | "notFound" | "error";
+
+/** 可执行文件的发现方式。 */
+export type ToolchainSource = "path" | "commonLocation" | "loginShell";
+
+/** 一个常用工具链的检测结果。 */
+export interface ToolchainInfo {
+  kind: ToolchainKind;
+  /** 展示名，例如 Python / Node.js。 */
+  name: string;
+  /** 实际查找的可执行文件名，例如 python3。 */
+  binary: string;
+  status: ToolchainStatus;
+  version: string | null;
+  executablePath: string | null;
+  source: ToolchainSource | null;
+  /** 面向用户的失败原因。 */
+  message: string | null;
+  /** 本次探测过的候选路径。 */
+  checkedPaths: string[];
+}
+
+/** 依赖更新检查的结论。 */
+export type OutdatedStatus = "ok" | "warning" | "error";
+
+/** 单个依赖的版本情况。 */
+export interface OutdatedPackage {
+  name: string;
+  current: string | null;
+  upgradable: string | null;
+  resolvable: string | null;
+  latest: string | null;
+}
+
+/** 一次依赖更新检查的结果。 */
+export interface OutdatedReport {
+  status: OutdatedStatus;
+  packages: OutdatedPackage[];
+  message: string | null;
+}

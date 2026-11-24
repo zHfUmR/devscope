@@ -14,6 +14,7 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use crate::models::ios::{CocoaPodsInfo, CocoaPodsSource, IosEnvironment, IosStatus, SimulatorInfo};
+use crate::utils::executable;
 use crate::utils::fs::{home_dir, is_executable};
 use crate::utils::process::{self, ProcessError, ProcessOutput};
 use crate::utils::version::compare_versions;
@@ -40,8 +41,6 @@ const LOGIN_SHELL_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// 固定命令，不拼接外部输入；只解析路径，不执行 pod。
 const LOGIN_SHELL_COMMAND: &str = "command -v pod";
-
-const LOGIN_SHELLS: [&str; 2] = ["/bin/zsh", "/bin/bash"];
 
 /// 错误摘要最多保留的字符数。
 const MESSAGE_EXCERPT_CHARS: usize = 300;
@@ -411,33 +410,14 @@ fn discover_pod() -> PodDiscovery {
     let mut candidate = candidates.iter().find(|candidate| is_executable(&candidate.path)).cloned();
 
     if candidate.is_none() {
-        for shell in LOGIN_SHELLS {
-            if !Path::new(shell).is_file() {
-                continue;
-            }
+        let login_shell_paths = executable::login_shell_paths("pod", LOGIN_SHELL_COMMAND, LOGIN_SHELL_TIMEOUT);
 
-            let mut command = Command::new(shell);
-            command.args(["-lc", LOGIN_SHELL_COMMAND]);
-
-            let Ok(output) = process::run_with_timeout(&mut command, LOGIN_SHELL_TIMEOUT) else {
-                continue;
-            };
-            if !output.success() {
-                continue;
-            }
-
-            let Some(path) = parse_login_shell_pod_path(&output.stdout) else {
-                continue;
-            };
-
+        if let Some(path) = login_shell_paths.into_iter().next() {
             push_checked_path(&mut checked_paths, path.to_string_lossy().into_owned());
-            if is_executable(&path) {
-                candidate = Some(PodCandidate {
-                    path,
-                    source: CocoaPodsSource::LoginShell,
-                });
-                break;
-            }
+            candidate = Some(PodCandidate {
+                path,
+                source: CocoaPodsSource::LoginShell,
+            });
         }
     }
 
@@ -446,14 +426,6 @@ fn discover_pod() -> PodDiscovery {
         candidate,
         checked_paths,
     }
-}
-
-/// 从登录 shell 的 `command -v pod` 输出中提取绝对路径。
-fn parse_login_shell_pod_path(stdout: &str) -> Option<PathBuf> {
-    stdout.lines().rev().find_map(|line| {
-        let path = Path::new(line.trim());
-        (path.is_absolute() && path.file_name() == Some(OsStr::new("pod"))).then(|| path.to_path_buf())
-    })
 }
 
 /// 收集 `pod` 候选路径：PATH、RubyGems、rbenv/rvm、Homebrew。
@@ -479,18 +451,13 @@ fn pod_candidates(home: Option<&Path>) -> Vec<PodCandidate> {
 
 /// 解析 PATH 中的 `pod` 候选，只接受绝对目录。
 fn path_pod_candidates(path_var: Option<&OsStr>) -> Vec<PodCandidate> {
-    let Some(path_var) = path_var else {
-        return Vec::new();
-    };
-
-    let mut candidates = Vec::new();
-    for directory in env::split_paths(path_var) {
-        if directory.is_absolute() {
-            push_pod_candidate(&mut candidates, directory.join("pod"), CocoaPodsSource::Path);
-        }
-    }
-
-    candidates
+    executable::path_candidates("pod", path_var)
+        .into_iter()
+        .map(|path| PodCandidate {
+            path,
+            source: CocoaPodsSource::Path,
+        })
+        .collect()
 }
 
 /// RubyGems 的版本目录，例如 `~/.gem/ruby/3.3.0/bin/pod`。
@@ -666,13 +633,6 @@ mod tests {
         assert_eq!(parse_pod_version("1.16.2\n"), Some("1.16.2".to_string()));
         assert_eq!(parse_pod_version("warning: already initialized constant\n1.16.2\n"), Some("1.16.2".to_string()));
         assert_eq!(parse_pod_version("no version here"), None);
-    }
-
-    #[test]
-    fn parses_login_shell_pod_path() {
-        let stdout = "Welcome to zsh\n/Users/me/.rbenv/shims/pod\n";
-
-        assert_eq!(parse_login_shell_pod_path(stdout), Some(PathBuf::from("/Users/me/.rbenv/shims/pod")));
     }
 
     #[test]
