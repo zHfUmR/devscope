@@ -43,7 +43,10 @@ devscope/
 ├── AGENTS.md
 ├── README.md
 ├── docs/
-│   └── PROJECT-STRUCTURE.md
+│   ├── PROJECT-STRUCTURE.md
+│   └── images/                       README 界面截图
+│       ├── overview.png
+│       └── flutter-environment.png
 ├── src/                              前端
 │   ├── main.ts
 │   ├── App.vue

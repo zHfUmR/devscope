@@ -20,6 +20,16 @@
 
 ---
 
+## 界面预览
+
+### 总览
+
+![总览：本机配置、常用开发环境与语言入口](docs/images/overview.png)
+
+### Flutter 环境检测
+
+![Flutter 环境检测：SDK 版本、安装详情与 flutter doctor 体检结果](docs/images/flutter-environment.png)
+
 ## 功能特性
 
 | 场景 | 说明 | 当前状态 |
