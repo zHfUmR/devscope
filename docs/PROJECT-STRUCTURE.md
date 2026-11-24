@@ -42,6 +42,7 @@ devscope/
 ├── tsconfig.json
 ├── AGENTS.md
 ├── README.md
+├── LICENSE
 ├── docs/
 │   └── PROJECT-STRUCTURE.md
 ├── src/                              前端
@@ -54,6 +55,7 @@ devscope/
 │   │   ├── AndroidEnvironment.vue
 │   │   ├── IosEnvironment.vue
 │   │   ├── Toolchains.vue
+│   │   ├── About.vue
 │   │   ├── ProjectAnalysis.vue
 │   │   ├── LogAnalysis.vue
 │   │   └── DiagnosticReport.vue
@@ -67,6 +69,7 @@ devscope/
 │   │   └── PathActions.vue
 │   ├── services/
 │   │   ├── rust-api.ts
+│   │   ├── app-info.ts
 │   │   ├── dialog.ts
 │   │   ├── errors.ts
 │   │   ├── clipboard.ts
@@ -145,6 +148,7 @@ createApp(App).use(router).mount("#app");
 页面本身不实现侧边栏；导航高亮由 Vue Router 的 `active-class` 负责。
 页面组件用 `<KeepAlive>` 缓存，返回时不重复执行慢检测；每个详情页都有刷新按钮。
 应用还挂载了 Cmd+K 命令面板，并提供跟随 macOS 外观的深色模式（见 `styles/app.css` 的令牌覆盖）。
+`About.vue` 提供版本、MIT License、项目主页和数据策略；macOS 原生「关于」面板不展示许可证文本，所以需要独立页面。
 
 ### `router/index.ts`
 
@@ -155,6 +159,7 @@ createApp(App).use(router).mount("#app");
 | `/environment/android` | Android |
 | `/environment/ios` | iOS / Xcode |
 | `/environment/toolchains` | 常用工具链 |
+| `/about` | 关于 / 开源许可 |
 | `/project` | Flutter 项目分析 |
 | `/logs` | 构建日志分析 |
 | `/report` | 诊断报告 |
@@ -171,6 +176,7 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 | `AndroidEnvironment.vue` | Android SDK / JDK / AVD 详情 |
 | `IosEnvironment.vue` | Xcode / CocoaPods / Swift / 模拟器详情 |
 | `Toolchains.vue` | Python / Node.js / Git / Rust / Go / Java 的路径与版本 |
+| `About.vue` | 版本、MIT License、项目链接与数据策略 |
 | `ProjectAnalysis.vue` | 选择项目目录，展示 pubspec / 依赖 / Android / iOS 配置 |
 | `LogAnalysis.vue` | 选择构建日志，展示错误 / 警告分组与构建结果 |
 | `DiagnosticReport.vue` | 生成、预览并导出 JSON / Markdown 诊断报告 |
@@ -198,6 +204,7 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 | `rust-api.ts` | 所有 `invoke()` 调用集中在这里 |
 | `dialog.ts` | 原生目录 / 文件 / 保存对话框（`@tauri-apps/plugin-dialog`） |
 | `errors.ts` | 未知错误 → 用户可读字符串 |
+| `app-info.ts` | 版本号、仓库 / License / Issues 链接 |
 | `clipboard.ts` | 复制文本，兼容 Clipboard API 与旧接口 |
 | `install-guide.ts` | 工具链安装命令与下载页（只展示，不执行） |
 | `reveal.ts` | 在 Finder 中定位文件 / 打开外部链接（opener 插件） |

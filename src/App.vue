@@ -118,6 +118,12 @@ watch(
           <span class="nav-icon" aria-hidden="true">报</span>
           诊断报告
         </RouterLink>
+
+        <p class="nav-label">应用</p>
+        <RouterLink class="nav-link" to="/about" active-class="nav-link--active">
+          <span class="nav-icon" aria-hidden="true">i</span>
+          关于 / 许可
+        </RouterLink>
       </nav>
 
       <button class="nav-shortcut" type="button" @click="paletteOpen = true">
@@ -133,9 +139,11 @@ watch(
 
     <main class="content">
       <RouterView v-slot="{ Component }">
-        <KeepAlive>
-          <component :is="Component" />
-        </KeepAlive>
+        <Transition name="page" mode="out-in">
+          <KeepAlive>
+            <component :is="Component" />
+          </KeepAlive>
+        </Transition>
       </RouterView>
     </main>
 
@@ -386,6 +394,30 @@ watch(
   min-width: 0;
   margin: 0 auto;
   padding: 34px 36px 56px;
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: none;
+  }
 }
 
 @media (max-width: 820px) {

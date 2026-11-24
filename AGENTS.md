@@ -39,7 +39,7 @@ macOS                   系统能力
 
 ## 3. 目录职责
 
-**当前实际状态**：Flutter / Android / iOS / 常用工具链检测、30 秒检测缓存、深色模式与 Cmd+K 命令面板，以及 Flutter 项目分析 / 构建日志分析 / 诊断报告已经落地；`views/`、`components/`、`services/`、`types/`、`router/` 均已有实际代码。新增目录只在有实际代码时创建，不为「以后可能用到」预铺空目录。
+**当前实际状态**：Flutter / Android / iOS / 常用工具链检测、30 秒检测缓存、深色模式与 Cmd+K 命令面板，以及 Flutter 项目分析 / 构建日志分析 / 诊断报告 / 关于与开源许可已经落地；`views/`、`components/`、`services/`、`types/`、`router/` 均已有实际代码。新增目录只在有实际代码时创建，不为「以后可能用到」预铺空目录。
 
 前端 `src/`：
 

@@ -12,7 +12,7 @@
 [![Vite](https://img.shields.io/badge/vite-8.3.8-646CFF?logo=vite&logoColor=white)](#)
 [![TypeScript](https://img.shields.io/badge/typescript-6.0.3-3178C6?logo=typescript&logoColor=white)](#)
 [![macOS](https://img.shields.io/badge/macos-12%2B-lightgrey?logo=apple&logoColor=white)](#)
-[![License](https://img.shields.io/badge/license-MIT-green)](#)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 🚧 **开发中** —— 项目功能正在逐步实现。
 
@@ -34,7 +34,8 @@
 | 构建日志解析 | 拖放读取、错误聚合、复制与导出筛选结果 | 已完成 |
 | 诊断报告导出 | 汇总环境 / 项目 / 日志，JSON / Markdown、历史对比 | 已完成 |
 | 检测缓存 | 30 秒内复用环境与工具链结果，手动刷新可强制绕过 | 已完成 |
-| 界面体验 | 深色模式、Cmd+K 快速跳转、路径复制 / Finder 定位 | 已完成 |
+| 界面体验 | 深色模式、Cmd+K、路径操作、主次按钮、页面过渡 | 已完成 |
+| 关于 / 许可 | 版本、MIT License、项目链接与数据策略 | 已完成 |
 | 菜单栏常驻 | 状态栏图标，可显示主窗口 / 关于 / 退出 | 已完成 |
 | macOS 打包 | 输出 `.app` / `.dmg`（ad-hoc 签名，未公证） | 已完成 |
 | 工程骨架 | Tauri 2 + Vue 3 + TypeScript | 已完成 |
@@ -108,7 +109,20 @@ devscope/
 - [x] 深色模式、Cmd+K 命令面板与路径操作
 - [x] 安装引导、日志增强、项目依赖更新检查
 - [x] 报告历史对比与最近导出
+- [x] 关于页、LICENSE 文件与开源许可展示
+- [x] UI 细节优化（主次按钮、粘性页头、页面过渡、宽表滚动）
+
+### 后续优化（未开始）
+
+- [ ] GitHub Actions CI：自动执行 fmt / clippy / test / 前端构建
+- [ ] 代码签名、公证、Universal Binary 与自动更新
+- [ ] 日志错误跳转到编辑器对应行
+- [ ] 应用日志落盘与「导出诊断日志」
+- [ ] 收紧 CSP 与 Tauri capabilities 权限
+- [ ] 关键页面 UI 冒烟测试与解析器 fixture 语料
+- [ ] 中英文切换与无障碍优化
+- [ ] CHANGELOG 与版本发布说明
 
 ## License
 
-MIT
+本项目基于 [MIT License](LICENSE) 开源。

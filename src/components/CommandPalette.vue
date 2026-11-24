@@ -85,6 +85,13 @@ const actions = computed<CommandAction[]>(() => {
       group: "项目与日志",
       to: "/report",
     },
+    {
+      id: "about",
+      label: "关于 / 开源许可",
+      hint: "版本、MIT License 与项目链接",
+      group: "应用",
+      to: "/about",
+    },
   ];
 
   if (!recentProject.value) {

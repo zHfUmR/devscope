@@ -122,6 +122,41 @@ button {
   font: inherit;
 }
 
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--border-strong);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+  background-clip: content-box;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-wrap > table {
+  min-width: 560px;
+}
+
 a {
   color: var(--accent);
   text-decoration: none;
@@ -140,11 +175,16 @@ a:hover {
 }
 
 .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 6px;
+  margin: -14px 0 6px;
+  padding: 14px 0 12px;
+  background: var(--bg);
 }
 
 .page-heading {
@@ -215,6 +255,24 @@ h1 {
 .refresh:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.refresh--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-accent);
+}
+
+.refresh--primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+  filter: brightness(1.06);
+}
+
+.refresh--primary:active:not(:disabled) {
+  filter: brightness(0.96);
 }
 
 /* ---------- 卡片 ---------- */
@@ -540,8 +598,11 @@ code {
 
 @media (max-width: 680px) {
   .page-header {
+    position: static;
     align-items: flex-start;
     flex-direction: column;
+    margin-top: 0;
+    padding-top: 0;
   }
 
   .metrics {

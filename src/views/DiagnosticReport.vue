@@ -616,7 +616,12 @@ onMounted(() => {
         </p>
       </div>
 
-      <button class="refresh" type="button" :disabled="generating" @click="generate">
+      <button
+        class="refresh refresh--primary"
+        type="button"
+        :disabled="generating"
+        @click="generate"
+      >
         <span v-if="generating" class="spinner spinner--small" aria-hidden="true"></span>
         {{ generating ? "生成中…" : report ? "重新生成" : "生成报告" }}
       </button>
@@ -772,28 +777,30 @@ onMounted(() => {
         <div v-if="changedCount === 0" class="empty-note">
           两份报告在摘要、环境版本、工具链、项目和日志统计上没有差异。
         </div>
-        <table v-else class="diff-table">
-          <thead>
-            <tr>
-              <th>项目</th>
-              <th>历史</th>
-              <th>当前</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="row in diffRows"
-              :key="row.label"
-              :class="{ 'diff-row--changed': row.changed }"
-            >
-              <td class="diff-label">{{ row.label }}</td>
-              <td>{{ row.before }}</td>
-              <td>{{ row.after }}</td>
-              <td class="diff-flag">{{ row.changed ? "变化" : "—" }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="table-wrap">
+          <table class="diff-table">
+            <thead>
+              <tr>
+                <th>项目</th>
+                <th>历史</th>
+                <th>当前</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in diffRows"
+                :key="row.label"
+                :class="{ 'diff-row--changed': row.changed }"
+              >
+                <td class="diff-label">{{ row.label }}</td>
+                <td>{{ row.before }}</td>
+                <td>{{ row.after }}</td>
+                <td class="diff-flag">{{ row.changed ? "变化" : "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="grid-2">
@@ -852,7 +859,7 @@ onMounted(() => {
             {{ exporting === "json" ? "导出中…" : "导出 JSON" }}
           </button>
           <button
-            class="refresh"
+            class="refresh refresh--primary"
             type="button"
             :disabled="exporting !== null"
             @click="exportReport('markdown')"

@@ -6,6 +6,7 @@
  */
 
 import { createRouter, createWebHashHistory } from "vue-router";
+import About from "../views/About.vue";
 import AndroidEnvironment from "../views/AndroidEnvironment.vue";
 import DiagnosticReport from "../views/DiagnosticReport.vue";
 import FlutterEnvironment from "../views/FlutterEnvironment.vue";
@@ -67,6 +68,12 @@ const router = createRouter({
       name: "report",
       component: DiagnosticReport,
       meta: { title: "诊断报告" },
+    },
+    {
+      path: "/about",
+      name: "about",
+      component: About,
+      meta: { title: "关于" },
     },
     {
       path: "/:pathMatch(.*)*",

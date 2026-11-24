@@ -339,7 +339,12 @@ onMounted(() => {
       </div>
 
       <div class="header-actions">
-        <button class="refresh" type="button" :disabled="loading" @click="chooseProject">
+        <button
+          class="refresh refresh--primary"
+          type="button"
+          :disabled="loading"
+          @click="chooseProject"
+        >
           {{ analysis ? "更换项目" : "选择项目" }}
         </button>
         <button
@@ -382,7 +387,9 @@ onMounted(() => {
           如果你是在浏览器中直接打开页面，请改用 <code>npm run tauri dev</code> 启动桌面应用。
         </p>
         <div class="state-actions">
-          <button class="refresh" type="button" @click="chooseProject">重新选择目录</button>
+          <button class="refresh refresh--primary" type="button" @click="chooseProject">
+            重新选择目录
+          </button>
         </div>
       </div>
     </div>
@@ -396,7 +403,9 @@ onMounted(() => {
           iOS 工程配置。没有 <code>pubspec.yaml</code> 的目录会被判定为非 Flutter 项目。
         </p>
         <div class="state-actions">
-          <button class="refresh" type="button" @click="chooseProject">选择项目目录</button>
+          <button class="refresh refresh--primary" type="button" @click="chooseProject">
+            选择项目目录
+          </button>
         </div>
       </div>
     </div>
@@ -415,7 +424,9 @@ onMounted(() => {
         <p>{{ errorMessage }}</p>
         <p class="hint">请选择包含 <code>pubspec.yaml</code> 的 Flutter 项目目录。</p>
         <div class="state-actions">
-          <button class="refresh" type="button" @click="chooseProject">重新选择目录</button>
+          <button class="refresh refresh--primary" type="button" @click="chooseProject">
+            重新选择目录
+          </button>
         </div>
       </div>
     </div>
@@ -525,7 +536,7 @@ onMounted(() => {
             </p>
           </div>
           <button
-            class="refresh"
+            class="refresh refresh--primary"
             type="button"
             :disabled="outdatedLoading"
             @click="checkOutdated"
@@ -560,26 +571,30 @@ onMounted(() => {
           <div v-else-if="outdated.packages.length === 0" class="empty-note">
             所有依赖都已是最新版本。
           </div>
-          <table v-else class="outdated-table">
-            <thead>
-              <tr>
-                <th>包名</th>
-                <th>当前</th>
-                <th>可升级</th>
-                <th>可解析</th>
-                <th>最新</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="packageItem in outdated.packages" :key="packageItem.name">
-                <td>{{ packageItem.name }}</td>
-                <td class="mono">{{ versionText(packageItem.current) }}</td>
-                <td class="mono">{{ versionText(packageItem.upgradable) }}</td>
-                <td class="mono">{{ versionText(packageItem.resolvable) }}</td>
-                <td class="mono outdated-latest">{{ versionText(packageItem.latest) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div v-else class="table-wrap">
+            <table class="outdated-table">
+              <thead>
+                <tr>
+                  <th>包名</th>
+                  <th>当前</th>
+                  <th>可升级</th>
+                  <th>可解析</th>
+                  <th>最新</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="packageItem in outdated.packages" :key="packageItem.name">
+                  <td>{{ packageItem.name }}</td>
+                  <td class="mono">{{ versionText(packageItem.current) }}</td>
+                  <td class="mono">{{ versionText(packageItem.upgradable) }}</td>
+                  <td class="mono">{{ versionText(packageItem.resolvable) }}</td>
+                  <td class="mono outdated-latest">
+                    {{ versionText(packageItem.latest) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </template>
         <div v-else class="empty-note">
           点击「检查依赖更新」运行 flutter pub outdated。该操作会访问 pub.dev，可能需要数十秒。

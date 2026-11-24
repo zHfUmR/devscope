@@ -300,7 +300,12 @@ onUnmounted(unregisterDragDrop);
       </div>
 
       <div class="header-actions">
-        <button class="refresh" type="button" :disabled="loading" @click="chooseLog">
+        <button
+          class="refresh refresh--primary"
+          type="button"
+          :disabled="loading"
+          @click="chooseLog"
+        >
           {{ analysis ? "更换日志" : "选择日志" }}
         </button>
         <button
@@ -343,7 +348,9 @@ onUnmounted(unregisterDragDrop);
           如果你是在浏览器中直接打开页面，请改用 <code>npm run tauri dev</code> 启动桌面应用。
         </p>
         <div class="state-actions">
-          <button class="refresh" type="button" @click="chooseLog">重新选择日志</button>
+          <button class="refresh refresh--primary" type="button" @click="chooseLog">
+            重新选择日志
+          </button>
         </div>
       </div>
     </div>
@@ -357,7 +364,9 @@ onUnmounted(unregisterDragDrop);
           并把完全相同的错误行合并计数。也可以直接把日志文件拖到窗口里。
         </p>
         <div class="state-actions">
-          <button class="refresh" type="button" @click="chooseLog">选择日志文件</button>
+          <button class="refresh refresh--primary" type="button" @click="chooseLog">
+            选择日志文件
+          </button>
         </div>
       </div>
     </div>
@@ -375,7 +384,9 @@ onUnmounted(unregisterDragDrop);
         </div>
         <p>{{ errorMessage }}</p>
         <div class="state-actions">
-          <button class="refresh" type="button" @click="chooseLog">重新选择日志</button>
+          <button class="refresh refresh--primary" type="button" @click="chooseLog">
+            重新选择日志
+          </button>
         </div>
       </div>
     </div>
