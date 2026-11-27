@@ -5,25 +5,16 @@
  * 与 Flutter、Android 使用同一套状态模型；Xcode 授权、CocoaPods 和模拟器
  * 的项目各自展示，doctor 摘要只负责跳转，不在这里重复 Flutter 的判断。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
+import { useDetection } from "../composables/useDetection";
 import IssueList from "../components/IssueList.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import { detectIosEnvironment } from "../services/rust-api";
 import { statusLabel, statusTone } from "../services/status";
-import type { CocoaPodsSource, IosEnvironment } from "../types";
+import type { CocoaPodsSource } from "../types";
+import type { DetailRow, Metric } from "../types/ui";
 
 type ViewState = "loading" | "ipcError" | "notFound" | "error" | "ready";
-
-interface Metric {
-  label: string;
-  value: string;
-}
-
-interface DetailRow {
-  label: string;
-  value: string;
-  mono?: boolean;
-}
 
 const COCOAPODS_SOURCE_LABELS: Record<CocoaPodsSource, string> = {
   path: "PATH",
@@ -31,10 +22,13 @@ const COCOAPODS_SOURCE_LABELS: Record<CocoaPodsSource, string> = {
   loginShell: "登录 Shell",
 };
 
-const environment = ref<IosEnvironment | null>(null);
-const loading = ref(false);
-const started = ref(false);
-const ipcError = ref<string | null>(null);
+const {
+  data: environment,
+  loading,
+  started,
+  ipcError,
+  refresh,
+} = useDetection(detectIosEnvironment);
 
 /** 第一次加载完成前也显示 loading。 */
 const viewState = computed<ViewState>(() => {
@@ -115,29 +109,6 @@ const cocoapodsDetails = computed<DetailRow[]>(() => {
     { label: "发现方式", value: COCOAPODS_SOURCE_LABELS[data.source] },
   ];
 });
-
-/** 执行一次检测；请求进行中按钮保持禁用。 */
-async function refresh(force = false): Promise<void> {
-  if (loading.value) {
-    return;
-  }
-
-  loading.value = true;
-  ipcError.value = null;
-
-  try {
-    environment.value = await detectIosEnvironment(force);
-  } catch (error) {
-    environment.value = null;
-    ipcError.value =
-      error instanceof Error && error.message.trim()
-        ? error.message
-        : "调用 Rust 命令失败，请查看应用日志。";
-  } finally {
-    loading.value = false;
-    started.value = true;
-  }
-}
 
 onMounted(() => {
   void refresh();

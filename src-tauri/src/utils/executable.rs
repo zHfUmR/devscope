@@ -1,8 +1,8 @@
 //! 可执行文件发现工具。
 //!
 //! Flutter、CocoaPods 和常用工具链都需要同一套「PATH → 常见目录 → 登录 shell」
-//! 查找逻辑。这里只负责最通用的部分：PATH 解析、登录 shell 执行、输出清洗和
-//! 可执行权限过滤；各检测器仍然自己决定候选目录和来源标记。
+//! 查找逻辑。这里只负责最通用的部分：PATH 解析、登录 shell 执行、输出清洗、
+//! 可执行权限过滤和候选去重；各检测器仍然自己决定候选目录和来源标记。
 
 use std::env;
 use std::ffi::OsStr;
@@ -15,6 +15,26 @@ use crate::utils::process;
 
 /// macOS 默认 shell 及兼容 shell。按顺序尝试，找到结果即停止。
 pub const LOGIN_SHELLS: [&str; 2] = ["/bin/zsh", "/bin/bash"];
+
+/// 可以按路径去重的候选。
+///
+/// Flutter、Android SDK、JDK、pod 和常用工具链各自有自己的候选类型（路径 +
+/// 发现方式），但「同一条路径只保留第一次出现」是同一件事。用这个 trait 把
+/// 去重逻辑收敛到一处，而不是每个模块各写一遍 `iter().any(...)`。
+pub trait PathCandidate {
+    fn path(&self) -> &Path;
+}
+
+/// 按路径去重后追加候选，保留第一次出现的发现方式。
+///
+/// 例如 Homebrew 路径同时出现在 PATH 和常见目录时，只保留来源为 PATH 的那条。
+pub fn push_unique<T: PathCandidate>(candidates: &mut Vec<T>, candidate: T) {
+    if candidates.iter().any(|existing| existing.path() == candidate.path()) {
+        return;
+    }
+
+    candidates.push(candidate);
+}
 
 /// 从 GUI 进程继承的 PATH 中收集 `目录/可执行文件名` 候选。
 ///
@@ -86,6 +106,43 @@ pub fn parse_login_shell_paths(stdout: &str, binary: &str) -> Vec<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 同一路径重复出现时只保留第一条，也就是优先级更高的来源。
+    #[test]
+    fn deduplicates_candidates_and_keeps_first_source() {
+        #[derive(Debug, PartialEq, Eq)]
+        struct Candidate {
+            path: PathBuf,
+            source: &'static str,
+        }
+
+        impl PathCandidate for Candidate {
+            fn path(&self) -> &Path {
+                &self.path
+            }
+        }
+
+        let path = PathBuf::from("/usr/local/bin/flutter");
+        let mut candidates = Vec::new();
+
+        push_unique(
+            &mut candidates,
+            Candidate {
+                path: path.clone(),
+                source: "PATH",
+            },
+        );
+        push_unique(
+            &mut candidates,
+            Candidate {
+                path,
+                source: "常见安装目录",
+            },
+        );
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].source, "PATH");
+    }
 
     #[test]
     fn builds_absolute_path_candidates() {

@@ -16,7 +16,7 @@ use serde::Deserialize;
 use crate::models::ios::{CocoaPodsInfo, CocoaPodsSource, IosEnvironment, IosStatus, SimulatorInfo};
 use crate::utils::executable;
 use crate::utils::fs::{home_dir, is_executable};
-use crate::utils::process::{self, ProcessError, ProcessOutput};
+use crate::utils::process::{self, MESSAGE_EXCERPT_CHARS, ProcessError, ProcessOutput};
 use crate::utils::version::compare_versions;
 
 /// Xcode 命令行工具固定位置；Xcode.app 内部也有，但系统级 CLT 单独存在。
@@ -42,14 +42,17 @@ const LOGIN_SHELL_TIMEOUT: Duration = Duration::from_secs(5);
 /// 固定命令，不拼接外部输入；只解析路径，不执行 pod。
 const LOGIN_SHELL_COMMAND: &str = "command -v pod";
 
-/// 错误摘要最多保留的字符数。
-const MESSAGE_EXCERPT_CHARS: usize = 300;
-
 /// 一个待验证的 `pod` 候选。
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PodCandidate {
     path: PathBuf,
     source: CocoaPodsSource,
+}
+
+impl executable::PathCandidate for PodCandidate {
+    fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 /// CocoaPods 路径发现结果。
@@ -476,12 +479,9 @@ fn gem_version_dirs(root: &Path) -> Vec<PathBuf> {
     versions
 }
 
-/// 按路径去重后追加 pod 候选，保留第一次出现的来源。
+/// 把「路径 + 来源」组装成 pod 候选并按路径去重。
 fn push_pod_candidate(candidates: &mut Vec<PodCandidate>, path: PathBuf, source: CocoaPodsSource) {
-    if candidates.iter().any(|existing| existing.path == path) {
-        return;
-    }
-    candidates.push(PodCandidate { path, source });
+    executable::push_unique(candidates, PodCandidate { path, source });
 }
 
 /// 运行 `pod --version`。

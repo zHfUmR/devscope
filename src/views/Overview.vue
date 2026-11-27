@@ -9,7 +9,9 @@ import { computed, onMounted, ref, type Ref } from "vue";
 import { RouterLink } from "vue-router";
 import EnvironmentRow from "../components/EnvironmentRow.vue";
 import StatusBadge from "../components/StatusBadge.vue";
-import { statusLabel, statusTone } from "../services/status";
+import { toUserMessage } from "../services/errors";
+import { formatMemory } from "../services/format";
+import { statusLabel, statusTone, type StatusTone } from "../services/status";
 import {
   detectAndroidEnvironment,
   detectFlutterEnvironment,
@@ -25,18 +27,13 @@ import type {
   ToolchainInfo,
   ToolchainKind,
 } from "../types";
+import type { Metric } from "../types/ui";
 
-type Tone = "ok" | "warning" | "error";
 
 interface Loadable<T> {
   loading: boolean;
   data: T | null;
   error: string | null;
-}
-
-interface Metric {
-  label: string;
-  value: string;
 }
 
 interface Language {
@@ -67,17 +64,6 @@ const loading = computed(
   () => system.value.loading || envLoading.value || toolchains.value.loading,
 );
 
-function toMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-  if (typeof error === "string" && error.trim()) {
-    return error;
-  }
-
-  return "调用 Rust 命令失败，请查看应用日志。";
-}
-
 /** 单个模块完成后立即更新自己的卡片，不必等其余模块一起结束。 */
 function loadInto<T>(target: Ref<Loadable<T>>, promise: Promise<T>): Promise<void> {
   return promise
@@ -85,7 +71,11 @@ function loadInto<T>(target: Ref<Loadable<T>>, promise: Promise<T>): Promise<voi
       target.value = { loading: false, data, error: null };
     })
     .catch((error: unknown) => {
-      target.value = { loading: false, data: null, error: toMessage(error) };
+      target.value = {
+        loading: false,
+        data: null,
+        error: toUserMessage(error, "调用 Rust 命令失败，请查看应用日志。"),
+      };
     });
 }
 
@@ -114,15 +104,6 @@ async function refresh(force = false): Promise<void> {
 onMounted(() => {
   void refresh();
 });
-
-function formatMemory(bytes: number | null): string {
-  if (!bytes || bytes <= 0) {
-    return "未知";
-  }
-
-  const gb = bytes / 1024 ** 3;
-  return gb >= 10 ? `${Math.round(gb)} GB` : `${gb.toFixed(1)} GB`;
-}
 
 const systemSubtitle = computed(() => {
   if (system.value.loading) {
@@ -154,7 +135,7 @@ const systemMetrics = computed<Metric[]>(() => {
 });
 
 /** 开发环境区域的整体状态，只做摘要，不重复详情。 */
-const envStatus = computed<{ tone: Tone; label: string }>(() => {
+const envStatus = computed<{ tone: StatusTone; label: string }>(() => {
   if (envLoading.value) {
     return { tone: "warning", label: "检测中" };
   }
@@ -241,7 +222,7 @@ const availableToolchains = computed(
   () => toolchainList.value.filter((tool) => tool.status === "ok").length,
 );
 
-const toolchainBadge = computed<{ tone: Tone; label: string }>(() => {
+const toolchainBadge = computed<{ tone: StatusTone; label: string }>(() => {
   if (toolchains.value.loading) {
     return { tone: "warning", label: "检测中" };
   }

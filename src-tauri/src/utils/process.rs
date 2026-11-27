@@ -12,6 +12,9 @@ use std::time::{Duration, Instant};
 /// 单条流（stdout / stderr）最多保留的字节数。
 const OUTPUT_LIMIT: usize = 256 * 1024;
 
+/// 错误摘要默认最多保留的字符数，避免把完整日志塞进 IPC 响应。
+pub const MESSAGE_EXCERPT_CHARS: usize = 300;
+
 /// 轮询子进程状态的间隔。
 const POLL_INTERVAL: Duration = Duration::from_millis(10);
 
@@ -40,6 +43,16 @@ impl ProcessOutput {
     /// 任一条流是否因为超过上限而被截断；调用方可据此提示输出不完整。
     pub fn is_truncated(&self) -> bool {
         self.stdout_truncated || self.stderr_truncated
+    }
+
+    /// 把结束方式描述成可拼进错误文案的短语。
+    ///
+    /// 正常退出给出「退出码 N」；被信号杀掉时 `status.code()` 是 `None`，
+    /// 统一描述为「被信号终止」，避免各检测器各写一份。
+    pub fn exit_description(&self) -> String {
+        self.exit_code()
+            .map(|code| format!("退出码 {code}"))
+            .unwrap_or_else(|| "被信号终止".to_string())
     }
 
     /// 取 stderr（为空时退回 stdout）作为错误摘要，并限制字符数。

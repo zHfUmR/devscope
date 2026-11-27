@@ -14,11 +14,42 @@
 [![macOS](https://img.shields.io/badge/macos-12%2B-lightgrey?logo=apple&logoColor=white)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-🚧 **开发中** —— 项目功能正在逐步实现。
+🚧 **早期版本** —— 核心功能已可用；代码签名、公证与 CI 仍在打磨。
 
 </div>
 
 ---
+
+## 项目简介
+
+DevScope 是一个面向移动端开发者的 macOS 开发环境诊断工具，使用 **Tauri 2 + Vue 3 + TypeScript + Rust** 开发。
+
+它把「本机到底装没装好开发环境」从终端里的一串命令，变成一份可读、可导出、可对比的界面：Flutter / Android / iOS / 常用工具链各自检测一遍，缺什么、装在哪、版本多少一目了然，再按需要汇总成 JSON 或 Markdown 诊断报告。
+
+**以 Flutter 环境检测为例，一次完整的调用链路是这样的：**
+
+1. 用户在 Vue 页面点击检测，前端通过统一封装的 Tauri IPC 接口调用 Rust command，并传入「是否强制刷新」的参数。
+2. Rust command 层只做三件事：接收请求、把阻塞任务调度到 blocking 线程池、把机制性失败转换成前端可读的错误。
+3. 真正的检测逻辑在 service 层：定位并执行本机 Flutter 工具链命令、解析输出、把结果组织成结构化模型。检测要启动外部进程，所以走 blocking 线程池，不占用 Tauri 的异步运行时。
+4. 结果经 serde 序列化后通过 IPC 返回，前端按类型化的数据展示环境状态。
+5. 重复检测由后端 30 秒 TTL 缓存兜底；用户手动刷新时传 `force = true` 直接绕过缓存。
+
+分层边界是硬性要求：系统级操作（执行命令、读文件、探测环境变量）只写在 Rust，Vue 只负责展示和交互，两层之间只有 IPC。
+
+## 检测链路
+
+![DevScope Flutter 环境检测全链路：Vue 前端 → Tauri IPC → Rust commands → services → 结果展示](docs/images/flutter-detection-flow.png)
+
+<sub>图中的代码片段取自实际实现：前端 `detectFlutterEnvironment()` → `call("detect_flutter_environment", { force })` → `commands::environment::detect_flutter_environment` → `services::flutter::detect()`。</sub>
+
+| 环节 | 代码位置 | 职责 |
+|---|---|---|
+| 页面状态 | `src/composables/useDetection.ts` | loading / IPC 错误 / 结果状态机，四个检测页共用 |
+| 统一 IPC | `src/services/rust-api.ts` | 所有 `invoke()` 集中一处，错误统一收敛成可读文案 |
+| 命令层 | `src-tauri/src/commands/` | 参数进出 + `run_blocking` 调度，不含业务逻辑 |
+| 服务层 | `src-tauri/src/services/` | 可执行文件发现、执行命令、解析版本、判定问题 |
+| 缓存 | `src-tauri/src/services/cache.rs` | 30 秒 TTL，`force` 可绕过 |
+| 数据契约 | `src-tauri/src/models/` ↔ `src/types/` | Rust struct / enum 与 TS interface 一一对应 |
 
 ## 功能特性
 
@@ -38,7 +69,6 @@
 | 关于 / 许可 | 版本、MIT License、项目链接与数据策略 | 已完成 |
 | 菜单栏常驻 | 状态栏图标，可显示主窗口 / 关于 / 退出 | 已完成 |
 | macOS 打包 | 输出 `.app` / `.dmg`（ad-hoc 签名，未公证） | 已完成 |
-| 工程骨架 | Tauri 2 + Vue 3 + TypeScript | 已完成 |
 
 ## 技术栈
 
@@ -74,18 +104,22 @@ npm run tauri build  # 产物在 src-tauri/target/release/bundle/
 
 ```
 devscope/
+├── docs/
+│   ├── PROJECT-STRUCTURE.md     逐文件说明
+│   └── images/                  文档与 README 引用的架构图
 ├── src/                         前端（Vue 3 + TypeScript）
 │   ├── router/                  路由（hash history）
 │   ├── views/                   总览 / 环境检测 / 项目 / 日志 / 报告
 │   ├── components/              可复用展示组件
-│   ├── services/                rust-api、原生对话框、错误与状态映射
-│   ├── types/index.ts           与 Rust 模型一一对应的 TS 类型
+│   ├── composables/             跨页面复用的组合式逻辑（useDetection）
+│   ├── services/                rust-api、原生对话框、错误 / 状态 / 格式化
+│   ├── types/                   index.ts：Rust 契约；ui.ts：展示型类型
 │   └── styles/app.css           设计令牌与共享样式
 └── src-tauri/                   Rust 后端
     └── src/
         ├── tray.rs              菜单栏常驻图标与菜单
         ├── commands/            前端可调用的命令（薄转发层）
-        ├── services/           环境检测 + 项目 / 日志 / 报告分析
+        ├── services/            环境检测 + 项目 / 日志 / 报告分析
         ├── models/              前后端数据契约
         └── utils/               进程执行、文件读取、时间与版本处理
 ```
@@ -111,6 +145,7 @@ devscope/
 - [x] 报告历史对比与最近导出
 - [x] 关于页、LICENSE 文件与开源许可展示
 - [x] UI 细节优化（主次按钮、粘性页头、页面过渡、宽表滚动）
+- [x] 统一 IPC 错误收敛与检测页状态机（`call()` / `useDetection`）
 
 ### 后续优化（未开始）
 

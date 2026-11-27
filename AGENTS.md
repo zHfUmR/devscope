@@ -5,7 +5,7 @@
 
 ## 1. 项目与技术栈
 
-DevScope 是一个 macOS 原生开发者工具箱：检测本机开发环境（Flutter / Dart / Xcode / Git / Python / Rust）、分析 Flutter 项目、解析构建日志并导出诊断报告。
+DevScope 是一个面向移动端开发者的 macOS 开发环境诊断工具：检测本机开发环境（Flutter / Dart / Xcode / Git / Python / Rust）、分析 Flutter 项目、解析构建日志并导出诊断报告。
 
 - 桌面框架：Tauri 2
 - 后端：Rust（edition 2024）——**核心业务层**
@@ -39,7 +39,7 @@ macOS                   系统能力
 
 ## 3. 目录职责
 
-**当前实际状态**：Flutter / Android / iOS / 常用工具链检测、30 秒检测缓存、深色模式与 Cmd+K 命令面板，以及 Flutter 项目分析 / 构建日志分析 / 诊断报告 / 关于与开源许可已经落地；`views/`、`components/`、`services/`、`types/`、`router/` 均已有实际代码。新增目录只在有实际代码时创建，不为「以后可能用到」预铺空目录。
+**当前实际状态**：Flutter / Android / iOS / 常用工具链检测、30 秒检测缓存、深色模式与 Cmd+K 命令面板，以及 Flutter 项目分析 / 构建日志分析 / 诊断报告 / 关于与开源许可已经落地；`views/`、`components/`、`composables/`、`services/`、`types/`、`router/` 均已有实际代码。新增目录只在有实际代码时创建，不为「以后可能用到」预铺空目录。
 
 前端 `src/`：
 
@@ -50,8 +50,11 @@ macOS                   系统能力
 | `router/` | 路由表与 hash history |
 | `views/` | 整页组件 `Overview.vue` / `FlutterEnvironment.vue` … |
 | `components/` | 可复用 UI 组件 |
-| `services/rust-api.ts` | 所有 `invoke` 调用集中在此 |
+| `composables/` | 跨页面复用的组合式逻辑，例如 `useDetection`（检测页共用的 loading / IPC 错误状态机） |
+| `services/rust-api.ts` | 所有 `invoke` 调用集中在此，统一经 `call()` 收敛错误 |
+| `services/` | 对话框、剪贴板、状态文案、展示层格式化等边界封装 |
 | `types/index.ts` | 与 Rust 结构体一一对应的 TS interface |
+| `types/ui.ts` | 页面之间共享的展示型类型（`Metric` / `DetailRow`） |
 | `styles/app.css` | 设计令牌与跨页面共享样式 |
 
 Rust `src-tauri/src/`：
@@ -65,6 +68,15 @@ Rust `src-tauri/src/`：
 | `services/` | 真正的业务逻辑，可独立测试 |
 | `models/` | struct / enum，前后端数据契约 |
 | `utils/` | 通用小工具，不要变成杂物间 |
+
+文档 `docs/`：
+
+| 路径 | 职责 |
+|---|---|
+| `PROJECT-STRUCTURE.md` | 逐文件说明、检测口径与验证命令；结构变动时同步更新 |
+| `images/` | README 与文档引用的架构图、截图；用相对路径引用，不要写本机绝对路径 |
+
+超过一屏就能说明白的链路，优先补一张图 + 一段文字，而不是堆表格。
 
 ## 4. Rust 规范
 

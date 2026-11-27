@@ -13,23 +13,12 @@ import StatusBadge from "../components/StatusBadge.vue";
 import { pickFile, pickTextSavePath } from "../services/dialog";
 import { toUserMessage } from "../services/errors";
 import { analyzeBuildLog, saveLogExport } from "../services/rust-api";
-import { statusTone } from "../services/status";
-import type {
-  BuildLogAnalysis,
-  BuildLogStatus,
-  BuildOutcome,
-  LogEntry,
-  LogSeverity,
-} from "../types";
+import { logStatusLabel, statusTone, type StatusTone } from "../services/status";
+import type { BuildLogAnalysis, BuildOutcome, LogEntry, LogSeverity } from "../types";
+import type { Metric } from "../types/ui";
 
 type ViewState = "idle" | "loading" | "ipcError" | "ok" | "error";
 type LogFilter = "all" | LogSeverity;
-type Tone = "ok" | "warning" | "error";
-
-interface Metric {
-  label: string;
-  value: string;
-}
 
 const FILTERS: Array<{ value: LogFilter; label: string }> = [
   { value: "all", label: "全部" },
@@ -125,18 +114,7 @@ function setFilter(value: LogFilter): void {
   filter.value = value;
 }
 
-function logStatusLabel(status: BuildLogStatus): string {
-  if (status === "ok") {
-    return "未发现错误";
-  }
-  if (status === "error") {
-    return "无法读取";
-  }
-
-  return "发现问题";
-}
-
-function outcomeBadge(outcome: BuildOutcome): { tone: Tone; label: string } {
+function outcomeBadge(outcome: BuildOutcome): { tone: StatusTone; label: string } {
   if (outcome === "success") {
     return { tone: "ok", label: "构建成功" };
   }

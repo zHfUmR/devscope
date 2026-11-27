@@ -8,7 +8,7 @@ use std::process::Command;
 use std::time::Duration;
 
 use crate::models::doctor::{DoctorReport, DoctorSection, DoctorStatus};
-use crate::utils::process::{self, ProcessError, ProcessOutput};
+use crate::utils::process::{self, MESSAGE_EXCERPT_CHARS, ProcessError, ProcessOutput};
 
 use super::{FLUTTER_ANALYTICS_ENV, FlutterCandidate, FlutterDiscovery, discover_flutter};
 
@@ -17,9 +17,6 @@ const DOCTOR_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// `--no-version-check` 放在子命令前，避免更新检查横幅干扰输出。
 const DOCTOR_ARGS: [&str; 3] = ["--no-version-check", "doctor", "-v"];
-
-/// 错误摘要最多保留的字符数，避免把完整 doctor 输出塞进 message。
-const MESSAGE_EXCERPT_CHARS: usize = 300;
 
 /// 运行一次完整的 Flutter 工具链体检。
 ///
@@ -62,10 +59,7 @@ fn build_report(output: &ProcessOutput) -> DoctorReport {
         let message = if output.success() {
             "flutter doctor 没有输出可识别的检查项。".to_string()
         } else {
-            let code = output
-                .exit_code()
-                .map(|code| format!("退出码 {code}"))
-                .unwrap_or_else(|| "被信号终止".to_string());
+            let code = output.exit_description();
             let excerpt = output.stderr_excerpt(MESSAGE_EXCERPT_CHARS);
 
             if excerpt.is_empty() {

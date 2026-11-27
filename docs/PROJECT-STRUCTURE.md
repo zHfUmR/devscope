@@ -44,7 +44,8 @@ devscope/
 ├── README.md
 ├── LICENSE
 ├── docs/
-│   └── PROJECT-STRUCTURE.md
+│   ├── PROJECT-STRUCTURE.md
+│   └── images/                       文档与 README 引用的架构图
 ├── src/                              前端
 │   ├── main.ts
 │   ├── App.vue
@@ -59,6 +60,8 @@ devscope/
 │   │   ├── ProjectAnalysis.vue
 │   │   ├── LogAnalysis.vue
 │   │   └── DiagnosticReport.vue
+│   ├── composables/
+│   │   └── useDetection.ts
 │   ├── components/
 │   │   ├── StatusBadge.vue
 │   │   ├── IssueList.vue
@@ -72,11 +75,14 @@ devscope/
 │   │   ├── app-info.ts
 │   │   ├── dialog.ts
 │   │   ├── errors.ts
+│   │   ├── format.ts
 │   │   ├── clipboard.ts
 │   │   ├── install-guide.ts
 │   │   ├── reveal.ts
 │   │   └── status.ts
-│   ├── types/index.ts
+│   ├── types/
+│   │   ├── index.ts
+│   │   └── ui.ts
 │   ├── styles/app.css
 │   └── vite-env.d.ts
 └── src-tauri/                        Rust
@@ -183,6 +189,14 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 
 页面统一处理 loading / IPC 失败 / 未选择或空状态 / 业务错误 / 正常（含 warning）几种状态。
 
+### `composables/`
+
+| 文件 | 职责 |
+|---|---|
+| `useDetection.ts` | 「挂载 → 调一次 IPC → loading / 结果 / IPC 错误」的状态机，四个环境检测页共用（返回 `data` / `loading` / `started` / `ipcError` / `refresh`） |
+
+只有两个以上页面真正复用的逻辑才放这里；一次性的组合逻辑留在页面内。
+
 ### `components/`
 
 | 组件 | 职责 |
@@ -204,6 +218,7 @@ history fallback；hash 路由在刷新时不会因为找不到 `/environment/fl
 | `rust-api.ts` | 所有 `invoke()` 调用集中在这里 |
 | `dialog.ts` | 原生目录 / 文件 / 保存对话框（`@tauri-apps/plugin-dialog`） |
 | `errors.ts` | 未知错误 → 用户可读字符串 |
+| `format.ts` | 展示层数值格式化（内存 GB 数），总览与报告页共用 |
 | `app-info.ts` | 版本号、仓库 / License / Issues 链接 |
 | `clipboard.ts` | 复制文本，兼容 Clipboard API 与旧接口 |
 | `install-guide.ts` | 工具链安装命令与下载页（只展示，不执行） |
@@ -308,7 +323,8 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 
 ### `commands/environment.rs`
 
-薄转发层：把阻塞检测丢到 `spawn_blocking`，把机制性失败转成字符串。
+薄转发层：用 `run_blocking(context, task)`（定义在 `commands/mod.rs`）把阻塞检测丢到
+`spawn_blocking`，并把机制性失败转成字符串；`context` 只参与拼错误信息。
 当前六个命令：
 
 | 命令 | 服务 |
@@ -406,27 +422,43 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 
 ## 五、一次检测的数据流
 
-以 Android 为例：
+![Flutter 环境检测全链路](images/flutter-detection-flow.png)
+
+上图是 Flutter 链路。下面按实际代码走一遍 Android；Flutter / iOS / 工具链只是
+把步骤 ③④ 换成对应模块，流程完全相同。
 
 ```
-① Overview.vue / AndroidEnvironment.vue
-       await detectAndroidEnvironment()
+① AndroidEnvironment.vue
+       const { data, loading, ipcError, refresh } = useDetection(detectAndroidEnvironment)
                     ↓
-② rust-api.ts: invoke("detect_android_environment")
+② services/rust-api.ts
+       call("detect_android_environment", { force })
+       → invoke(...)，失败统一走 toUserMessage()
                     ↓
-③ commands/environment.rs: spawn_blocking(android::detect)
+③ commands/environment.rs
+       run_blocking("Android 环境检测", move || cache.android(force))
+       → spawn_blocking + 把 join 失败转成可读错误
                     ↓
-④ services/android.rs
+④ services/cache.rs
+       30 秒内且 force = false 时直接返回上次结果
+                    ↓
+⑤ services/android.rs
        - 读取 ANDROID_HOME / ANDROID_SDK_ROOT / 常见目录
        - 扫描 platforms、build-tools、cmdline-tools、licenses
        - 查找 JDK、adb、emulator、AVD
                     ↓
-⑤ AndroidEnvironment { status, issues, ... }
+⑥ AndroidEnvironment { status, issues, ... }
                     ↓
-⑥ serde 序列化为 camelCase JSON，Promise resolve
+⑦ serde 序列化为 camelCase JSON，Promise resolve
                     ↓
-⑦ 页面按 status / issues 渲染
+⑧ 页面 viewState 按 status / issues 渲染
 ```
+
+要点：
+
+- 同一页面重复点击由 `useDetection` 的 `loading` 守卫挡住，不会重复起进程。
+- `force = true` 只影响 ④ 这一步，其余流程不变。
+- 页面拿到的永远是结构化模型；文案、颜色、空状态都在前端决定。
 
 ---
 
@@ -537,11 +569,12 @@ macOS 图标网格：画布 1024，内容圆角方形 824×824（四周各留 10
 
 1. `models/xxx.rs`：定义状态枚举和结果 struct，加 `Serialize` + camelCase。
 2. `services/xxx.rs`：实现 `detect()`，把可测试的解析逻辑拆成纯函数，补单测。
-3. `commands/environment.rs`：加薄命令，`spawn_blocking` 调 service。
+3. `commands/environment.rs`：加薄命令，用 `run_blocking("Xxx 环境检测", …)` 调 service。
 4. `lib.rs`：注册命令。
-5. `src/types/index.ts`：写对应 interface。
-6. `src/services/rust-api.ts`：加 invoke 封装。
-7. `src/views/XxxEnvironment.vue`：处理 loading / 未安装 / 错误 / warning。
+5. `src/types/index.ts`：写对应 interface；纯展示型类型放 `types/ui.ts`。
+6. `src/services/rust-api.ts`：用 `call()` 写一行转发，不再重复 try/catch。
+7. `src/views/XxxEnvironment.vue`：用 `useDetection()` 接管 loading / IPC 错误，
+   页面只写自己的 viewState 映射和模板。
 8. `src/router/index.ts` + `App.vue`：加路由和导航项。
 9. 更新本文档和 README。
 

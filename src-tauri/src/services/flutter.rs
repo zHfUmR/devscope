@@ -15,7 +15,7 @@ use serde::Deserialize;
 use crate::models::environment::{FlutterEnvironment, FlutterExecutableSource, FlutterStatus, FlutterVersionInfo};
 use crate::utils::executable;
 use crate::utils::fs::{home_dir, is_executable};
-use crate::utils::process::{self, ProcessError};
+use crate::utils::process::{self, MESSAGE_EXCERPT_CHARS, ProcessError};
 
 mod doctor;
 
@@ -33,9 +33,6 @@ const LOGIN_SHELL_COMMAND: &str = "command -v flutter";
 /// 版本查询超时。首次运行时 Flutter 可能初始化自己的缓存，留出比普通命令更宽裕的时间。
 const VERSION_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// 错误摘要最多保留的字符数，避免把完整日志塞进 IPC 响应。
-const MESSAGE_EXCERPT_CHARS: usize = 300;
-
 /// 关闭版本检查，避免 `flutter --version` 触发网络请求；`--machine` 输出 JSON。
 const VERSION_ARGS: [&str; 3] = ["--no-version-check", "--version", "--machine"];
 
@@ -49,6 +46,12 @@ struct FlutterCandidate {
     path: PathBuf,
     /// 这个路径是从哪一级查找中发现的。
     source: FlutterExecutableSource,
+}
+
+impl executable::PathCandidate for FlutterCandidate {
+    fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 /// 路径发现的结果：命中项，以及本次检查过的全部路径。
@@ -88,7 +91,7 @@ fn discover_with(
 
     if executable.is_none() {
         for candidate in login_shell_candidates() {
-            push_candidate(&mut candidates, candidate);
+            executable::push_unique(&mut candidates, candidate);
         }
         executable = first_executable(&candidates).cloned();
     }
@@ -168,17 +171,6 @@ fn candidates_from_login_shell() -> Vec<FlutterCandidate> {
             source: FlutterExecutableSource::LoginShell,
         })
         .collect()
-}
-
-/// 按路径去重后追加候选，保留第一次出现的发现方式。
-///
-/// 例如 Homebrew 路径同时出现在 PATH 和常见目录时，只保留来源为 PATH 的那条。
-fn push_candidate(candidates: &mut Vec<FlutterCandidate>, candidate: FlutterCandidate) {
-    if candidates.iter().any(|existing| existing.path == candidate.path) {
-        return;
-    }
-
-    candidates.push(candidate);
 }
 
 /// 返回第一个真正可执行的候选；候选顺序就是优先级。
@@ -324,10 +316,7 @@ fn inspect_candidate(
             }
         },
         Ok(output) => {
-            let code = output
-                .exit_code()
-                .map(|code| format!("退出码 {code}"))
-                .unwrap_or_else(|| "被信号终止".to_string());
+            let code = output.exit_description();
             let excerpt = output.stderr_excerpt(MESSAGE_EXCERPT_CHARS);
             let note = if output.is_truncated() {
                 "（输出已截断）"
@@ -520,31 +509,6 @@ mod tests {
         );
 
         assert_eq!(common_install_candidates_for(None).len(), 3);
-    }
-
-    /// 同一路径重复出现时只保留第一条，也就是优先级更高的来源。
-    #[test]
-    fn deduplicates_candidates_and_keeps_first_source() {
-        let path = PathBuf::from("/usr/local/bin/flutter");
-        let mut candidates = Vec::new();
-
-        push_candidate(
-            &mut candidates,
-            FlutterCandidate {
-                path: path.clone(),
-                source: FlutterExecutableSource::Path,
-            },
-        );
-        push_candidate(
-            &mut candidates,
-            FlutterCandidate {
-                path,
-                source: FlutterExecutableSource::CommonLocation,
-            },
-        );
-
-        assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].source, FlutterExecutableSource::Path);
     }
 
     /// 可执行判断要求普通文件 + 执行位，目录和缺失路径都不算。

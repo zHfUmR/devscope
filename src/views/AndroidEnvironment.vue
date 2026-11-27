@@ -5,29 +5,16 @@
  * 对齐 Flutter 页的状态模型：loading / ipcError / notFound / error / ready。
  * ready 同时覆盖 ok 和 warning，warning 时在页面内列出可修复项。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
+import { useDetection } from "../composables/useDetection";
 import IssueList from "../components/IssueList.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import { detectAndroidEnvironment } from "../services/rust-api";
 import { statusLabel, statusTone } from "../services/status";
-import type {
-  AndroidEnvironment,
-  AndroidSdkSource,
-  JavaSource,
-} from "../types";
+import type { AndroidSdkSource, JavaSource } from "../types";
+import type { DetailRow, Metric } from "../types/ui";
 
 type ViewState = "loading" | "ipcError" | "notFound" | "error" | "ready";
-
-interface Metric {
-  label: string;
-  value: string;
-}
-
-interface DetailRow {
-  label: string;
-  value: string;
-  mono?: boolean;
-}
 
 const SDK_SOURCE_LABELS: Record<AndroidSdkSource, string> = {
   environment: "环境变量",
@@ -40,10 +27,13 @@ const JAVA_SOURCE_LABELS: Record<JavaSource, string> = {
   system: "系统 / Homebrew / SDKMAN",
 };
 
-const environment = ref<AndroidEnvironment | null>(null);
-const loading = ref(false);
-const started = ref(false);
-const ipcError = ref<string | null>(null);
+const {
+  data: environment,
+  loading,
+  started,
+  ipcError,
+  refresh,
+} = useDetection(detectAndroidEnvironment);
 
 /** 第一次加载完成前也显示 loading，避免页面先闪空内容。 */
 const viewState = computed<ViewState>(() => {
@@ -122,29 +112,6 @@ const javaDetails = computed<DetailRow[]>(() => {
     { label: "发现方式", value: JAVA_SOURCE_LABELS[java.source] },
   ];
 });
-
-/** 执行一次检测；请求进行中按钮保持禁用。 */
-async function refresh(force = false): Promise<void> {
-  if (loading.value) {
-    return;
-  }
-
-  loading.value = true;
-  ipcError.value = null;
-
-  try {
-    environment.value = await detectAndroidEnvironment(force);
-  } catch (error) {
-    environment.value = null;
-    ipcError.value =
-      error instanceof Error && error.message.trim()
-        ? error.message
-        : "调用 Rust 命令失败，请查看应用日志。";
-  } finally {
-    loading.value = false;
-    started.value = true;
-  }
-}
 
 onMounted(() => {
   void refresh();

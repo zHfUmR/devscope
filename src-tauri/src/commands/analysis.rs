@@ -8,6 +8,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::run_blocking;
 use crate::models::build_log::BuildLogAnalysis;
 use crate::models::outdated::OutdatedReport;
 use crate::models::project::ProjectAnalysis;
@@ -18,17 +19,13 @@ use crate::services::{build_log, outdated, project, report};
 /// 分析一个 Flutter 项目目录。
 #[tauri::command]
 pub async fn analyze_flutter_project(path: String) -> Result<ProjectAnalysis, String> {
-    tauri::async_runtime::spawn_blocking(move || project::analyze(Path::new(&path)))
-        .await
-        .map_err(|err| format!("项目分析任务执行失败：{err}"))
+    run_blocking("项目分析", move || project::analyze(Path::new(&path))).await
 }
 
 /// 分析一份构建日志文件。
 #[tauri::command]
 pub async fn analyze_build_log(path: String) -> Result<BuildLogAnalysis, String> {
-    tauri::async_runtime::spawn_blocking(move || build_log::analyze(Path::new(&path)))
-        .await
-        .map_err(|err| format!("日志分析任务执行失败：{err}"))
+    run_blocking("日志分析", move || build_log::analyze(Path::new(&path))).await
 }
 
 /// 生成一次完整诊断报告。
@@ -46,9 +43,7 @@ pub async fn generate_diagnostic_report(
     let cache = cache.inner().clone();
     let force = force.unwrap_or(false);
 
-    tauri::async_runtime::spawn_blocking(move || report::generate(&options, &cache, force))
-        .await
-        .map_err(|err| format!("诊断报告生成任务执行失败：{err}"))
+    run_blocking("诊断报告生成", move || report::generate(&options, &cache, force)).await
 }
 
 /// 把前端已生成的报告写成 JSON / Markdown 文件。
@@ -62,11 +57,10 @@ pub async fn save_diagnostic_report(
 ) -> Result<SavedReport, String> {
     let path = PathBuf::from(path);
 
-    tauri::async_runtime::spawn_blocking(move || {
+    run_blocking("诊断报告导出", move || {
         report::save(&report, format, &path).map_err(|error| error.to_string())
     })
-    .await
-    .map_err(|err| format!("诊断报告导出任务执行失败：{err}"))?
+    .await?
 }
 
 /// 检查项目依赖是否可以更新。
@@ -76,25 +70,19 @@ pub async fn save_diagnostic_report(
 /// 收敛在 `OutdatedReport.status` / `message` 里。
 #[tauri::command]
 pub async fn check_flutter_outdated(path: String) -> Result<OutdatedReport, String> {
-    tauri::async_runtime::spawn_blocking(move || outdated::check(Path::new(&path)))
-        .await
-        .map_err(|err| format!("依赖更新检查任务执行失败：{err}"))
+    run_blocking("依赖更新检查", move || outdated::check(Path::new(&path))).await
 }
 
 /// 把报告渲染成字符串，供复制到剪贴板。
 #[tauri::command]
 pub async fn render_diagnostic_report(report: DiagnosticReport, format: ReportFormat) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || report::render(&report, format).map_err(|error| error.to_string()))
-        .await
-        .map_err(|err| format!("诊断报告渲染任务执行失败：{err}"))?
+    run_blocking("诊断报告渲染", move || report::render(&report, format).map_err(|error| error.to_string())).await?
 }
 
 /// 读取一份之前导出的 JSON 报告，用于版本对比。
 #[tauri::command]
 pub async fn load_diagnostic_report(path: String) -> Result<DiagnosticReport, String> {
-    tauri::async_runtime::spawn_blocking(move || report::load(Path::new(&path)).map_err(|error| error.to_string()))
-        .await
-        .map_err(|err| format!("诊断报告载入任务执行失败：{err}"))?
+    run_blocking("诊断报告载入", move || report::load(Path::new(&path)).map_err(|error| error.to_string())).await?
 }
 
 /// 把日志分析的筛选结果写成文本文件。
@@ -108,11 +96,10 @@ pub async fn save_log_export(path: String, content: String) -> Result<(), String
 
     let path = PathBuf::from(path);
 
-    tauri::async_runtime::spawn_blocking(move || {
+    run_blocking("日志导出", move || {
         fs::write(&path, content).map_err(|error| format!("写入日志导出失败：{error}"))
     })
-    .await
-    .map_err(|err| format!("日志导出任务执行失败：{err}"))?
+    .await?
 }
 
 /// 调用系统打印面板打印当前窗口（可另存为 PDF）。

@@ -55,8 +55,8 @@ fn render_system(out: &mut String, system: &SystemInfo) {
 
     let rows = [
         ("系统", join_values([system.os_name.as_deref(), system.os_version.as_deref()])),
-        ("Build", system.os_build.clone().unwrap_or_else(|| "未知".to_string())),
-        ("芯片", system.chip.clone().unwrap_or_else(|| "未知".to_string())),
+        ("Build", or_unknown(system.os_build.as_deref())),
+        ("芯片", or_unknown(system.chip.as_deref())),
         ("内存", format_memory(system.memory_bytes)),
         (
             "CPU",
@@ -65,9 +65,9 @@ fn render_system(out: &mut String, system: &SystemInfo) {
                 .map(|cores| format!("{cores} 核"))
                 .unwrap_or_else(|| "未知".to_string()),
         ),
-        ("架构", system.architecture.clone().unwrap_or_else(|| "未知".to_string())),
-        ("机型", system.model.clone().unwrap_or_else(|| "未知".to_string())),
-        ("电脑名称", system.hostname.clone().unwrap_or_else(|| "未知".to_string())),
+        ("架构", or_unknown(system.architecture.as_deref())),
+        ("机型", or_unknown(system.model.as_deref())),
+        ("电脑名称", or_unknown(system.hostname.as_deref())),
     ];
 
     push_table(
@@ -330,6 +330,11 @@ fn push_table(out: &mut String, headers: &[&str], rows: &[Vec<String>]) {
         let cells = row.iter().map(|value| cell(value)).collect::<Vec<_>>();
         let _ = writeln!(out, "| {} |", cells.join(" | "));
     }
+}
+
+/// 缺失字段统一显示「未知」；有值时转成可写进表格的 String。
+fn or_unknown(value: Option<&str>) -> String {
+    value.unwrap_or("未知").to_string()
 }
 
 /// 表格单元格转义：竖线会破坏表格，换行会破坏行结构。

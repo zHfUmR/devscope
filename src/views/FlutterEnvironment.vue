@@ -9,33 +9,19 @@
  *   notFound 没有找到 Flutter（空状态）
  *   error    找到了但执行/解析失败，或 IPC 本身失败
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
+import { useDetection } from "../composables/useDetection";
 import StatusBadge from "../components/StatusBadge.vue";
 import { detectFlutterEnvironment, runFlutterDoctor } from "../services/rust-api";
-import type {
-  DoctorReport,
-  DoctorSection,
-  DoctorStatus,
-  FlutterEnvironment,
-  FlutterExecutableSource,
-} from "../types";
+import type { StatusTone } from "../services/status";
+import type { DoctorSection, DoctorStatus, FlutterExecutableSource } from "../types";
+import type { DetailRow, Metric } from "../types/ui";
 
 type ViewState = "loading" | "ipcError" | "ok" | "notFound" | "error";
 
-interface Metric {
-  label: string;
-  value: string;
-}
-
-interface DetailRow {
-  label: string;
-  value: string;
-  mono?: boolean;
-}
-
 interface DoctorBadge {
-  tone: "ok" | "warning" | "error";
+  tone: StatusTone;
   label: string;
 }
 
@@ -51,14 +37,26 @@ const SOURCE_LABELS: Record<FlutterExecutableSource, string> = {
   loginShell: "登录 Shell",
 };
 
-const environment = ref<FlutterEnvironment | null>(null);
-const loading = ref(false);
-const started = ref(false);
-const ipcError = ref<string | null>(null);
+const {
+  data: environment,
+  loading,
+  started,
+  ipcError,
+  refresh,
+} = useDetection(detectFlutterEnvironment);
 
-const doctorReport = ref<DoctorReport | null>(null);
-const doctorLoading = ref(false);
-const doctorError = ref<string | null>(null);
+/**
+ * 按需运行 flutter doctor。
+ *
+ * doctor 会检查设备、网络和多个工具链，耗时明显长于版本检测，所以不自动执行，
+ * 也不复用主检测的 loading 状态。
+ */
+const {
+  data: doctorReport,
+  loading: doctorLoading,
+  ipcError: doctorError,
+  refresh: runDoctor,
+} = useDetection(runFlutterDoctor, "运行 flutter doctor 失败，请查看应用日志。");
 
 /** 第一次加载完成前也显示 loading，避免页面先闪一下空内容。 */
 const viewState = computed<ViewState>(() => {
@@ -191,59 +189,10 @@ function sectionLabel(status: DoctorStatus): string {
   return "失败";
 }
 
-/** 执行一次检测；按钮在请求进行中保持禁用。 */
-async function refresh(force = false): Promise<void> {
-  if (loading.value) {
-    return;
-  }
-
-  loading.value = true;
-  ipcError.value = null;
-
-  try {
-    environment.value = await detectFlutterEnvironment(force);
-  } catch (error) {
-    environment.value = null;
-    ipcError.value =
-      error instanceof Error && error.message.trim()
-        ? error.message
-        : "调用 Rust 命令失败，请查看应用日志。";
-  } finally {
-    loading.value = false;
-    started.value = true;
-  }
-}
-
 onMounted(() => {
   void refresh();
 });
 
-/**
- * 按需运行 flutter doctor。
- *
- * doctor 会检查设备、网络和多个工具链，耗时明显长于版本检测，所以不自动执行，
- * 也不复用主检测的 loading 状态。
- */
-async function runDoctor(): Promise<void> {
-  if (doctorLoading.value) {
-    return;
-  }
-
-  doctorLoading.value = true;
-  doctorError.value = null;
-
-  try {
-    doctorReport.value = await runFlutterDoctor();
-  } catch (error) {
-    doctorReport.value = null;
-    doctorError.value =
-      error instanceof Error && error.message.trim()
-        ? error.message
-        : "运行 flutter doctor 失败，请查看应用日志。";
-  } finally {
-    doctorLoading.value = false;
-  }
-}
 </script>
 
 <template>
@@ -326,7 +275,7 @@ async function runDoctor(): Promise<void> {
             class="refresh doctor-run"
             type="button"
             :disabled="doctorLoading"
-            @click="runDoctor"
+            @click="runDoctor()"
           >
             <span v-if="doctorLoading" class="spinner spinner--small" aria-hidden="true"></span>
             {{ doctorLoading ? "体检中…" : doctorReport ? "重新体检" : "运行体检" }}

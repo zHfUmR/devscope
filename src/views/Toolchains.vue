@@ -6,6 +6,7 @@
  * 路径和发现方式；未安装的工具不影响其他功能，也不代表环境异常。
  */
 import { computed, onMounted, ref } from "vue";
+import { useDetection } from "../composables/useDetection";
 import CopyButton from "../components/CopyButton.vue";
 import PathActions from "../components/PathActions.vue";
 import StatusBadge from "../components/StatusBadge.vue";
@@ -13,11 +14,10 @@ import { toUserMessage } from "../services/errors";
 import { INSTALL_GUIDES, type InstallGuide } from "../services/install-guide";
 import { openExternalUrl } from "../services/reveal";
 import { detectToolchains } from "../services/rust-api";
-import { statusTone } from "../services/status";
+import { statusTone, type StatusTone } from "../services/status";
 import type { ToolchainInfo, ToolchainKind, ToolchainSource, ToolchainStatus } from "../types";
 
 type ViewState = "loading" | "ipcError" | "empty" | "ok";
-type Tone = "ok" | "warning" | "error";
 
 interface ToolMeta {
   monogram: string;
@@ -45,10 +45,17 @@ const SOURCE_LABELS: Record<ToolchainSource, string> = {
   loginShell: "登录 Shell",
 };
 
-const tools = ref<ToolchainInfo[]>([]);
-const loading = ref(false);
-const started = ref(false);
-const ipcError = ref<string | null>(null);
+const {
+  data: toolsData,
+  loading,
+  started,
+  ipcError,
+  refresh,
+} = useDetection(detectToolchains, "检测常用工具链失败，请查看应用日志。");
+
+/** 结果统一按数组处理；失败时为空数组，具体展示哪种状态由 viewState 决定。 */
+const tools = computed(() => toolsData.value ?? []);
+
 const installError = ref<string | null>(null);
 
 const viewState = computed<ViewState>(() => {
@@ -77,7 +84,7 @@ const availableCount = computed(
   () => tools.value.filter((tool) => tool.status === "ok").length,
 );
 
-const overall = computed<{ tone: Tone; label: string }>(() => {
+const overall = computed<{ tone: StatusTone; label: string }>(() => {
   if (!started.value || loading.value) {
     return { tone: "warning", label: "检测中" };
   }
@@ -117,25 +124,6 @@ async function openGuide(url: string): Promise<void> {
     await openExternalUrl(url);
   } catch (error) {
     installError.value = toUserMessage(error, "无法打开下载页。");
-  }
-}
-
-async function refresh(force = false): Promise<void> {
-  if (loading.value) {
-    return;
-  }
-
-  loading.value = true;
-  ipcError.value = null;
-
-  try {
-    tools.value = await detectToolchains(force);
-  } catch (error) {
-    tools.value = [];
-    ipcError.value = toUserMessage(error, "检测常用工具链失败，请查看应用日志。");
-  } finally {
-    loading.value = false;
-    started.value = true;
   }
 }
 

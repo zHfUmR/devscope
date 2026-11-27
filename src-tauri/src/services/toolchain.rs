@@ -98,6 +98,12 @@ struct Candidate {
     source: ToolchainSource,
 }
 
+impl executable::PathCandidate for Candidate {
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
 /// 路径发现结果：命中项，以及本次检查过的全部路径。
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Discovery {
@@ -150,7 +156,7 @@ fn discover_with(mut candidates: Vec<Candidate>, login_shell_candidates: impl Fn
 
     if executables.is_empty() {
         for candidate in login_shell_candidates() {
-            push_candidate(&mut candidates, candidate);
+            executable::push_unique(&mut candidates, candidate);
         }
         executables = executable_candidates(&candidates);
     }
@@ -193,13 +199,13 @@ fn candidates(definition: &Definition, path_var: Option<&OsStr>, home: Option<&P
             if candidate.path.parent().is_some_and(is_system_bin) {
                 deferred.push(candidate);
             } else {
-                push_candidate(&mut candidates, candidate);
+                executable::push_unique(&mut candidates, candidate);
             }
         }
     }
 
     for path in common_candidates(definition, home) {
-        push_candidate(
+        executable::push_unique(
             &mut candidates,
             Candidate {
                 path,
@@ -209,7 +215,7 @@ fn candidates(definition: &Definition, path_var: Option<&OsStr>, home: Option<&P
     }
 
     for candidate in deferred {
-        push_candidate(&mut candidates, candidate);
+        executable::push_unique(&mut candidates, candidate);
     }
 
     candidates
@@ -217,14 +223,6 @@ fn candidates(definition: &Definition, path_var: Option<&OsStr>, home: Option<&P
 
 fn is_system_bin(directory: &Path) -> bool {
     matches!(directory.to_str(), Some("/usr/bin" | "/bin" | "/usr/sbin" | "/sbin"))
-}
-
-fn push_candidate(candidates: &mut Vec<Candidate>, candidate: Candidate) {
-    if candidates.iter().any(|existing| existing.path == candidate.path) {
-        return;
-    }
-
-    candidates.push(candidate);
 }
 
 /// 常见安装目录。版本管理器（pyenv / nvm / fnm / SDKMAN）的路径也要覆盖，
@@ -479,10 +477,7 @@ fn describe_version_failure(definition: &Definition, path: &str, output: &proces
             format!("已找到 {}（{path}），但 {args} 输出无法解析：{excerpt}{note}", definition.name)
         }
     } else {
-        let code = output
-            .exit_code()
-            .map(|code| format!("退出码 {code}"))
-            .unwrap_or_else(|| "被信号终止".to_string());
+        let code = output.exit_description();
 
         if excerpt.is_empty() {
             format!("执行 {} {args} 失败（{code}），没有输出。{note}", definition.binary)

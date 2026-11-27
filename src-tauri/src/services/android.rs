@@ -12,6 +12,7 @@ use std::process::Command;
 use std::time::Duration;
 
 use crate::models::android::{AndroidEnvironment, AndroidSdkSource, AndroidStatus, JavaRuntime, JavaSource};
+use crate::utils::executable;
 use crate::utils::fs::{home_dir, is_executable};
 use crate::utils::process;
 use crate::utils::version::compare_versions;
@@ -27,6 +28,12 @@ const PLATFORM_PREFIX: &str = "android-";
 struct SdkCandidate {
     path: PathBuf,
     source: AndroidSdkSource,
+}
+
+impl executable::PathCandidate for SdkCandidate {
+    fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 /// SDK 路径发现结果：命中项，以及本次检查过的全部路径。
@@ -53,6 +60,12 @@ struct SdkLayout {
 struct JavaCandidate {
     path: PathBuf,
     source: JavaSource,
+}
+
+impl executable::PathCandidate for JavaCandidate {
+    fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 /// 检测本机 Android 环境，是 services 层对外的唯一入口。
@@ -177,7 +190,7 @@ fn discover_sdk_with(home: Option<&Path>, env_home: Option<&OsStr>, env_root: Op
 
     for value in [env_home, env_root].into_iter().flatten() {
         if !value.is_empty() {
-            push_sdk_candidate(
+            executable::push_unique(
                 &mut candidates,
                 SdkCandidate {
                     path: PathBuf::from(value),
@@ -192,7 +205,7 @@ fn discover_sdk_with(home: Option<&Path>, env_home: Option<&OsStr>, env_root: Op
     // 环境变量可能正好指向常见目录，去重后再生成 checked_paths。
     let mut unique = Vec::new();
     for candidate in candidates {
-        push_sdk_candidate(&mut unique, candidate);
+        executable::push_unique(&mut unique, candidate);
     }
     let candidates = unique;
 
@@ -227,14 +240,6 @@ fn common_sdk_candidates(home: Option<&Path>) -> Vec<SdkCandidate> {
             source: AndroidSdkSource::CommonLocation,
         })
         .collect()
-}
-
-/// 按路径去重后追加，保留第一次出现的发现方式。
-fn push_sdk_candidate(candidates: &mut Vec<SdkCandidate>, candidate: SdkCandidate) {
-    if candidates.iter().any(|existing| existing.path == candidate.path) {
-        return;
-    }
-    candidates.push(candidate);
 }
 
 /// 读取 SDK 根目录下的关键子目录和可执行文件。
@@ -435,12 +440,9 @@ fn scan_jvms(root: &Path, candidates: &mut Vec<JavaCandidate>) {
     }
 }
 
-/// 按路径去重后追加 JDK 候选。
+/// 把「路径 + 来源」组装成 JDK 候选并按路径去重。
 fn push_java_candidate(candidates: &mut Vec<JavaCandidate>, path: PathBuf, source: JavaSource) {
-    if candidates.iter().any(|existing| existing.path == path) {
-        return;
-    }
-    candidates.push(JavaCandidate { path, source });
+    executable::push_unique(candidates, JavaCandidate { path, source });
 }
 
 /// 读取 `~/.android/avd/*.ini` 的文件名作为已配置的模拟器名称。

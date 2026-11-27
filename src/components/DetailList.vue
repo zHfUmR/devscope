@@ -5,8 +5,10 @@
  * 页面把结构化数据整理成 `{ label, value, mono }`，这里只负责 <dl> 排版，
  * 不关心业务含义；样式复用 app.css 里的 `.details` / `.detail-row`。
  */
+import type { DetailRow } from "../types/ui";
+
 defineProps<{
-  rows: Array<{ label: string; value: string; mono?: boolean }>;
+  rows: DetailRow[];
 }>();
 </script>
 

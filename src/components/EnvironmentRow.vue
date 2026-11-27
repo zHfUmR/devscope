@@ -5,15 +5,14 @@
  * 点击整行进入对应环境检测页；加载、IPC 失败和正常数据三种形态由父组件切换。
  */
 import { RouterLink } from "vue-router";
+import type { StatusTone } from "../services/status";
 import StatusBadge from "./StatusBadge.vue";
-
-type Tone = "ok" | "warning" | "error";
 
 defineProps<{
   title: string;
   /** 左侧单字母标记，例如 F / A / i。 */
   monogram: string;
-  tone: Tone;
+  tone: StatusTone;
   statusLabel: string;
   headline: string;
   meta?: string;

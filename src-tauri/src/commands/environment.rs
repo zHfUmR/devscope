@@ -7,6 +7,7 @@
 //! `force = true` 表示用户主动刷新，绕过 30 秒 TTL；页面首次加载不传或传
 //! `false`，可以直接复用总览页刚执行过的检测。
 
+use super::run_blocking;
 use crate::models::android::AndroidEnvironment;
 use crate::models::doctor::DoctorReport;
 use crate::models::environment::FlutterEnvironment;
@@ -30,9 +31,7 @@ pub async fn detect_flutter_environment(
     let cache = cache.inner().clone();
     let force = force.unwrap_or(false);
 
-    tauri::async_runtime::spawn_blocking(move || cache.flutter(force))
-        .await
-        .map_err(|err| format!("Flutter 环境检测任务执行失败：{err}"))
+    run_blocking("Flutter 环境检测", move || cache.flutter(force)).await
 }
 
 /// 运行 `flutter doctor -v` 并返回体检报告。
@@ -40,9 +39,7 @@ pub async fn detect_flutter_environment(
 /// doctor 是按需触发的慢操作，且结果带有时间点信息，不进入 TTL 缓存。
 #[tauri::command]
 pub async fn run_flutter_doctor() -> Result<DoctorReport, String> {
-    tauri::async_runtime::spawn_blocking(flutter::run_flutter_doctor)
-        .await
-        .map_err(|err| format!("Flutter 体检任务执行失败：{err}"))
+    run_blocking("Flutter 体检", flutter::run_flutter_doctor).await
 }
 
 /// 检测本机 Android SDK、JDK 和模拟器。
@@ -54,9 +51,7 @@ pub async fn detect_android_environment(
     let cache = cache.inner().clone();
     let force = force.unwrap_or(false);
 
-    tauri::async_runtime::spawn_blocking(move || cache.android(force))
-        .await
-        .map_err(|err| format!("Android 环境检测任务执行失败：{err}"))
+    run_blocking("Android 环境检测", move || cache.android(force)).await
 }
 
 /// 检测本机 Xcode、Command Line Tools、CocoaPods 和 iOS 模拟器。
@@ -71,9 +66,7 @@ pub async fn detect_ios_environment(
     let cache = cache.inner().clone();
     let force = force.unwrap_or(false);
 
-    tauri::async_runtime::spawn_blocking(move || cache.ios(force))
-        .await
-        .map_err(|err| format!("iOS 环境检测任务执行失败：{err}"))
+    run_blocking("iOS 环境检测", move || cache.ios(force)).await
 }
 
 /// 读取本机配置（macOS、芯片、内存、核心数、机型）。
@@ -85,9 +78,7 @@ pub async fn detect_system_info(
     let cache = cache.inner().clone();
     let force = force.unwrap_or(false);
 
-    tauri::async_runtime::spawn_blocking(move || cache.system(force))
-        .await
-        .map_err(|err| format!("本机配置检测任务执行失败：{err}"))
+    run_blocking("本机配置检测", move || cache.system(force)).await
 }
 
 /// 检测常用工具链（Python / Node.js / Git / Rust / Go / Java）。
@@ -99,7 +90,5 @@ pub async fn detect_toolchains(
     let cache = cache.inner().clone();
     let force = force.unwrap_or(false);
 
-    tauri::async_runtime::spawn_blocking(move || cache.toolchains(force))
-        .await
-        .map_err(|err| format!("常用工具链检测任务执行失败：{err}"))
+    run_blocking("常用工具链检测", move || cache.toolchains(force)).await
 }

@@ -4,10 +4,10 @@
  *
  * 只负责展示，不关心业务含义；调用方决定 tone 和 label。
  */
-type Tone = "ok" | "warning" | "error";
+import type { StatusTone } from "../services/status";
 
 defineProps<{
-  tone: Tone;
+  tone: StatusTone;
   label: string;
 }>();
 </script>

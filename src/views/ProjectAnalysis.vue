@@ -15,28 +15,17 @@ import StatusBadge from "../components/StatusBadge.vue";
 import { pickDirectory } from "../services/dialog";
 import { toUserMessage } from "../services/errors";
 import { analyzeFlutterProject, checkFlutterOutdated } from "../services/rust-api";
-import { statusTone } from "../services/status";
+import { projectStatusLabel, statusTone, type StatusTone } from "../services/status";
 import type {
   DependencySource,
   OutdatedReport,
   PlatformKind,
   ProjectAnalysis,
   ProjectDependency,
-  ProjectStatus,
 } from "../types";
+import type { DetailRow, Metric } from "../types/ui";
 
 type ViewState = "idle" | "loading" | "ipcError" | "ok" | "error";
-
-interface DetailRow {
-  label: string;
-  value: string;
-  mono?: boolean;
-}
-
-interface Metric {
-  label: string;
-  value: string;
-}
 
 interface DependencyGroup {
   label: string;
@@ -213,17 +202,6 @@ const errorMessage = computed(
   () => analysis.value?.message ?? "无法读取项目配置，请确认目录是否正确。",
 );
 
-function projectStatusLabel(status: ProjectStatus): string {
-  if (status === "ok") {
-    return "结构完整";
-  }
-  if (status === "warning") {
-    return "需注意";
-  }
-
-  return "无法分析";
-}
-
 function readRememberedPath(): string | null {
   try {
     return localStorage.getItem(STORAGE_KEY);
@@ -301,7 +279,7 @@ async function checkOutdated(): Promise<void> {
   }
 }
 
-function outdatedBadge(report: OutdatedReport): { tone: "ok" | "warning" | "error"; label: string } {
+function outdatedBadge(report: OutdatedReport): { tone: StatusTone; label: string } {
   if (report.status === "ok") {
     return { tone: "ok", label: "已是最新" };
   }

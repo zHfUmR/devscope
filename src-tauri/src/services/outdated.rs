@@ -11,13 +11,10 @@ use serde::Deserialize;
 
 use crate::models::outdated::{OutdatedPackage, OutdatedReport, OutdatedStatus};
 use crate::services::flutter;
-use crate::utils::process;
+use crate::utils::process::{self, MESSAGE_EXCERPT_CHARS};
 
 /// 联网解析依赖可能较慢，给 60 秒。
 const OUTDATED_TIMEOUT: Duration = Duration::from_secs(60);
-
-/// 错误摘要最多保留的字符数。
-const MESSAGE_EXCERPT_CHARS: usize = 300;
 
 /// 检查项目依赖是否可以更新。
 pub fn check(project_path: &Path) -> OutdatedReport {
@@ -46,10 +43,7 @@ pub fn check(project_path: &Path) -> OutdatedReport {
 
 fn build_report(output: &process::ProcessOutput) -> OutdatedReport {
     let Some(json) = extract_json_object(&output.stdout).or_else(|| extract_json_object(&output.stderr)) else {
-        let code = output
-            .exit_code()
-            .map(|code| format!("退出码 {code}"))
-            .unwrap_or_else(|| "被信号终止".to_string());
+        let code = output.exit_description();
         let excerpt = output.stderr_excerpt(MESSAGE_EXCERPT_CHARS);
 
         return failed(if excerpt.is_empty() {
@@ -69,10 +63,7 @@ fn build_report(output: &process::ProcessOutput) -> OutdatedReport {
             let message = if output.success() {
                 None
             } else {
-                let code = output
-                    .exit_code()
-                    .map(|code| format!("退出码 {code}"))
-                    .unwrap_or_else(|| "被信号终止".to_string());
+                let code = output.exit_description();
                 Some(format!("命令以{code}结束，但已解析到部分依赖信息。"))
             };
 

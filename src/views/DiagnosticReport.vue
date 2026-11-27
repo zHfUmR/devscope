@@ -12,6 +12,7 @@ import StatusBadge from "../components/StatusBadge.vue";
 import { copyText } from "../services/clipboard";
 import { pickDirectory, pickFile, pickSavePath } from "../services/dialog";
 import { toUserMessage } from "../services/errors";
+import { formatMemory } from "../services/format";
 import {
   generateDiagnosticReport,
   loadDiagnosticReport,
@@ -19,21 +20,15 @@ import {
   renderDiagnosticReport,
   saveDiagnosticReport,
 } from "../services/rust-api";
-import { statusLabel, statusTone } from "../services/status";
-import type {
-  BuildLogStatus,
-  DiagnosticReport,
-  PlatformKind,
-  ProjectStatus,
-  ReportFormat,
-  ReportSummaryStatus,
-} from "../types";
-
-interface DetailRow {
-  label: string;
-  value: string;
-  mono?: boolean;
-}
+import {
+  logStatusLabel,
+  projectStatusLabel,
+  reportSummaryLabel,
+  statusLabel,
+  statusTone,
+} from "../services/status";
+import type { DiagnosticReport, PlatformKind, ReportFormat } from "../types";
+import type { DetailRow } from "../types/ui";
 
 interface RecentExport {
   path: string;
@@ -116,8 +111,8 @@ const diffRows = computed<DiffRow[]>(() => {
   const rows: Array<[string, string, string]> = [
     [
       "总体结论",
-      summaryLabel(previous.summary.status),
-      summaryLabel(current.summary.status),
+      reportSummaryLabel(previous.summary.status),
+      reportSummaryLabel(current.summary.status),
     ],
     ["问题条目", String(previous.summary.issueCount), String(current.summary.issueCount)],
     [
@@ -321,48 +316,6 @@ const generatedAtText = computed(() => {
 });
 
 const hasInputs = computed(() => Boolean(projectPath.value || logPath.value));
-
-function formatMemory(bytes: number | null): string {
-  if (!bytes || bytes <= 0) {
-    return "未知";
-  }
-
-  const gb = bytes / 1024 ** 3;
-  return gb >= 10 ? `${Math.round(gb)} GB` : `${gb.toFixed(1)} GB`;
-}
-
-function projectStatusLabel(status: ProjectStatus): string {
-  if (status === "ok") {
-    return "结构完整";
-  }
-  if (status === "warning") {
-    return "需注意";
-  }
-
-  return "无法分析";
-}
-
-function logStatusLabel(status: BuildLogStatus): string {
-  if (status === "ok") {
-    return "未发现错误";
-  }
-  if (status === "error") {
-    return "无法读取";
-  }
-
-  return "发现问题";
-}
-
-function summaryLabel(status: ReportSummaryStatus): string {
-  if (status === "ok") {
-    return "已就绪";
-  }
-  if (status === "error") {
-    return "需处理";
-  }
-
-  return "需注意";
-}
 
 function displayPath(path: string | null): string {
   return path ?? "未选择";
@@ -723,7 +676,7 @@ onMounted(() => {
             </button>
             <StatusBadge
               :tone="statusTone(report.summary.status)"
-              :label="summaryLabel(report.summary.status)"
+              :label="reportSummaryLabel(report.summary.status)"
             />
           </div>
         </div>
